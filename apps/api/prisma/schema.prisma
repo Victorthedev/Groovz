@@ -1,0 +1,176 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum Region {
+  NG
+  UK
+  EU
+  US
+  CA
+}
+
+enum Platform {
+  spotify
+  deezer
+  audiomack
+  youtube_music
+}
+
+enum Plan {
+  free
+  paid
+}
+
+enum GenerationType {
+  seed
+  prompt
+  hybrid
+  weekly_ml
+}
+
+enum SignalType {
+  playlist_created
+  playlist_regenerated
+  seed_used
+  prompt_used
+  spotify_top_track
+  spotify_recent_play
+  lastfm_scrobble
+}
+
+enum SubscriptionStatus {
+  active
+  cancelled
+  past_due
+}
+
+enum CryptoNetwork {
+  base
+  polygon
+}
+
+enum CryptoStatus {
+  active
+  expired
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  region       Region
+
+  connectedPlatforms ConnectedPlatform[]
+  preferences        UserPreferences?
+  capabilities       UserCapabilities?
+  playlists          PlaylistRecord[]
+  signals            UserSignal[]
+  subscription       Subscription?
+  cryptoSubscription CryptoSubscription?
+}
+
+model ConnectedPlatform {
+  id           String   @id @default(uuid())
+  userId       String
+  platform     Platform
+  accessToken  String   // encrypted at rest
+  refreshToken String   // encrypted at rest
+  scopes       String[]
+  connectedAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, platform])
+}
+
+model UserPreferences {
+  userId          String  @id
+  defaultPlatform String?
+  defaultDuration Int     @default(60)   // minutes
+  diversityBias   Float   @default(0.5)  // 0.0–1.0, paid tier tunable
+  whatsappLinked  Boolean @default(false)
+  whatsappPhone   String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserCapabilities {
+  userId                      String   @id
+  plan                        Plan     @default(free)
+  maxPlaylistDurationMinutes  Int      @default(120)
+  maxPlaylistsPerMonth        Int      @default(10)
+  playlistsGeneratedThisMonth Int      @default(0)
+  canUseRouteFeature          Boolean  @default(false)
+  canUseWhatsapp              Boolean  @default(false)
+  resetDate                   DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PlaylistRecord {
+  id                  String         @id @default(uuid())
+  userId              String
+  platform            String
+  generationType      GenerationType
+  seedTrackTitle      String?
+  seedTrackArtist     String?
+  promptSummary       String?
+  durationMinutes     Int
+  trackCount          Int
+  platformPlaylistId  String?
+  platformPlaylistUrl String?
+  createdAt           DateTime       @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model UserSignal {
+  id         String     @id @default(uuid())
+  userId     String
+  signalType SignalType
+  data       Json
+  recordedAt DateTime   @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([recordedAt])
+}
+
+model Subscription {
+  userId           String             @id
+  stripeCustomerId String
+  stripePriceId    String
+  status           SubscriptionStatus
+  currentPeriodEnd DateTime
+  region           String
+  currency         String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model CryptoSubscription {
+  userId          String        @id
+  walletAddress   String
+  contractAddress String
+  network         CryptoNetwork
+  status          CryptoStatus
+  lastChargedAt   DateTime
+  nextChargeAt    DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
