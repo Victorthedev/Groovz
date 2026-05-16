@@ -1,6 +1,5 @@
 // v1
 import Fastify from 'fastify'
-import cors from '@fastify/cors'
 import jwt from '@fastify/jwt'
 import authPlugin from './modules/auth/index.js'
 import userPlugin from './modules/user/index.js'
@@ -13,10 +12,18 @@ import { createSocketServer } from './shared/utils/socket.js'
 
 const app = Fastify({ logger: true })
 
-app.register(cors, {
-  origin: (process.env.WEB_BASE_URL ?? 'http://localhost:3000').trim(),
-  credentials: true,
+const WEB_ORIGIN = (process.env.WEB_BASE_URL ?? 'http://localhost:3000').trim()
+
+app.addHook('onRequest', async (req, reply) => {
+  reply.header('Access-Control-Allow-Origin', WEB_ORIGIN)
+  reply.header('Access-Control-Allow-Credentials', 'true')
+  reply.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
+  reply.header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  if (req.method === 'OPTIONS') {
+    reply.status(204).send()
+  }
 })
+
 app.register(jwt, { secret: process.env.JWT_SECRET ?? 'dev-secret-change-in-production' })
 
 // A single non-encapsulated container carries the /api/v1 prefix.
