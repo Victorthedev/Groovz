@@ -1,9 +1,10 @@
-DESIGN.md
 node_modules/
 dist/
 .env
 .env.local
 .DS_Store
 *.tsbuildinfo
+
+# Keep private — design docs, not source code
+DESIGN.md
 FRONTEND.md
-.env.example

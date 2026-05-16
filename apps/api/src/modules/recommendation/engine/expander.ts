@@ -38,29 +38,58 @@ export async function expandFromSeed(
     ...similarArtists.slice(0, 40),
   ]
 
-  for (const { name: artist, match: artistSim } of artistsToExpand) {
-    const [tracks, tags] = await Promise.all([
-      lastfm.getArtistTopTracks(artist, targetRaw >= TARGET_120MIN ? 15 : 10),
+  for (let i = 0; i < artistsToExpand.length; i++) {
+    const { name: artist, match: artistSim } = artistsToExpand[i]
+    const limit = targetRaw >= TARGET_120MIN ? 15 : 10
+
+    const [tracks, tags, albums] = await Promise.all([
+      lastfm.getArtistTopTracks(artist, limit),
       lastfm.getArtistTopTags(artist),
+      i < 20 ? lastfm.getArtistTopAlbums(artist, 3) : Promise.resolve([]),
     ])
 
+    const artistContribution = artistSim * 0.3
     for (const t of tracks) {
       const id = canonicalId(t.artist, t.name)
       const existing = raw.get(id)
-      const artistContribution = artistSim * 0.3
 
       if (existing) {
-        // Enrich similarity: the track was already found via getSimilarTracks,
-        // add the artist component to its base similarity
         existing.baseSimilarity = Math.min(1, existing.baseSimilarity + artistContribution)
         if (!existing.tags.length) existing.tags = tags
       } else {
         addToRaw(raw, t.name, t.artist, {
-          baseSimilarity: artistContribution,  // no direct track match
+          baseSimilarity: artistContribution,
           durationMs: t.durationMs || undefined,
           listeners: t.listeners,
           tags,
         })
+      }
+    }
+
+    if (raw.size < targetRaw) {
+      const deepTracks = await lastfm.getArtistTopTracks(artist, limit, 2)
+      for (const t of deepTracks) {
+        addToRaw(raw, t.name, t.artist, {
+          baseSimilarity: artistContribution * 0.7,
+          durationMs: t.durationMs || undefined,
+          listeners: t.listeners,
+          tags,
+        })
+      }
+    }
+
+    // Album deep cuts for top 20 artists — tracklisting order, not popularity order
+    if (i < 20 && raw.size < targetRaw) {
+      for (const album of albums.slice(0, 2)) {
+        const albumTracks = await lastfm.getAlbumTracks(album.artist, album.name)
+        for (const t of albumTracks) {
+          addToRaw(raw, t.name, t.artist, {
+            baseSimilarity: artistContribution * 0.6,
+            durationMs: t.durationMs || undefined,
+            listeners: 0,  // no listener data from album.getInfo → treated as deep cut
+            tags,
+          })
+        }
       }
     }
 
@@ -81,22 +110,57 @@ export async function expandFromPrompt(
   if (tags.length === 0) return buildPool(raw)
 
   for (const tag of tags.slice(0, 10)) {
-    const artists = await lastfm.getTagTopArtists(tag, 20)
+    // Fetch page 1 + 2 from tag's top artists to get beyond the obvious names
+    const [page1Artists, page2Artists] = await Promise.all([
+      lastfm.getTagTopArtists(tag, 20, 1),
+      lastfm.getTagTopArtists(tag, 20, 2),
+    ])
+    const artists = [...page1Artists, ...page2Artists]
 
-    for (const artist of artists) {
-      const [tracks, artistTags] = await Promise.all([
+    for (let j = 0; j < artists.length; j++) {
+      const artist = artists[j]
+
+      const [tracks, artistTags, albums] = await Promise.all([
         lastfm.getArtistTopTracks(artist, 15),
         lastfm.getArtistTopTags(artist),
+        j < 10 ? lastfm.getArtistTopAlbums(artist, 3) : Promise.resolve([]),
       ])
 
+      const tagOverlap = computeTagOverlap(artistTags, tags)
       for (const t of tracks) {
-        const tagOverlap = computeTagOverlap(artistTags, tags)
         addToRaw(raw, t.name, t.artist, {
           baseSimilarity: tagOverlap,
           durationMs: t.durationMs || undefined,
           listeners: t.listeners,
           tags: artistTags,
         })
+      }
+
+      if (raw.size < targetRaw) {
+        const deepTracks = await lastfm.getArtistTopTracks(artist, 15, 2)
+        for (const t of deepTracks) {
+          addToRaw(raw, t.name, t.artist, {
+            baseSimilarity: tagOverlap * 0.7,
+            durationMs: t.durationMs || undefined,
+            listeners: t.listeners,
+            tags: artistTags,
+          })
+        }
+      }
+
+      // Album deep cuts for first 10 artists per tag
+      if (j < 10 && raw.size < targetRaw) {
+        for (const album of albums.slice(0, 2)) {
+          const albumTracks = await lastfm.getAlbumTracks(album.artist, album.name)
+          for (const t of albumTracks) {
+            addToRaw(raw, t.name, t.artist, {
+              baseSimilarity: tagOverlap * 0.6,
+              durationMs: t.durationMs || undefined,
+              listeners: 0,
+              tags: artistTags,
+            })
+          }
+        }
       }
 
       if (raw.size >= targetRaw) break

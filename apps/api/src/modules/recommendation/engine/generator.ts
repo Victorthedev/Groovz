@@ -33,6 +33,15 @@ export async function generate(
     // Apply duration fit check (§5.6)
     candidates = candidates.filter(t => fitsInSession(t, session))
 
+    // 20% popular track cap — enforce after other filters so we never get stuck
+    if (session.selectedTracks.length > 0) {
+      const popularRatio = session.popularTrackCount / session.selectedTracks.length
+      if (popularRatio >= 0.2) {
+        const nonPopular = candidates.filter(t => (t.popularity ?? 0) < 0.75)
+        if (nonPopular.length > 0) candidates = nonPopular
+      }
+    }
+
     if (candidates.length === 0) {
       const recovered = await handleExhaustion(session, pool)
       if (!recovered) break
@@ -183,6 +192,7 @@ export function createSession(params: {
     tagCount: new Map(),
     rejectedIds: new Set(),
     blockedArtists: new Set(),
+    popularTrackCount: 0,
     temperature: 0.25,
     iteration: 0,
     softPenaltiesRelaxed: false,

@@ -19,6 +19,7 @@ export interface PlaylistSession {
   tagCount: Map<string, number>
   rejectedIds: Set<string>
   blockedArtists: Set<string>
+  popularTrackCount: number        // tracks with popularity >= 0.75 — capped at 20% of selected
 
   // Algorithm state
   temperature: number

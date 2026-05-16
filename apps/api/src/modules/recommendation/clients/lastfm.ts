@@ -1,19 +1,22 @@
-const BASE_URL = 'https://ws.audioscrobbler.com/2.0/'
+import { redis } from '../../../shared/utils/redis.js'
+
+const BASE_URL    = 'https://ws.audioscrobbler.com/2.0/'
 const RATE_LIMIT_MS = 210  // ~4.7 req/sec, safely under Last.fm's 5/sec
+const CACHE_TTL     = 86_400  // 24 hours — artist/album data is stable day-to-day
 
 // ─── Response shape types ─────────────────────────────────────────────────────
 
 export interface LastFmSimilarTrack {
   name: string
   artist: string
-  match: number        // 0.0–1.0 similarity from Last.fm
-  durationMs: number   // converted from seconds
+  match: number
+  durationMs: number
   listeners: number
 }
 
 export interface LastFmSimilarArtist {
   name: string
-  match: number        // 0.0–1.0
+  match: number
 }
 
 export interface LastFmArtistTrack {
@@ -22,6 +25,20 @@ export interface LastFmArtistTrack {
   durationMs: number
   listeners: number
   playcount: number
+}
+
+export interface LastFmAlbumTrack {
+  name: string
+  artist: string
+  durationMs: number
+}
+
+// ─── Cache key helper ─────────────────────────────────────────────────────────
+
+function ck(...parts: (string | number)[]): string {
+  return 'lfm:' + parts
+    .map(p => String(p).toLowerCase().replace(/[^a-z0-9]/g, '_').slice(0, 80))
+    .join(':')
 }
 
 // ─── Rate limiter ─────────────────────────────────────────────────────────────
@@ -98,6 +115,10 @@ class LastFmClient {
     artist: string,
     limit = 100,
   ): Promise<LastFmSimilarTrack[]> {
+    const key = ck('st', artist, track, limit)
+    const hit = await redis.get(key)
+    if (hit) return JSON.parse(hit) as LastFmSimilarTrack[]
+
     try {
       const data = await this.fetch<{
         similartracks: { track: Array<{
@@ -109,34 +130,46 @@ class LastFmClient {
         }> }
       }>({ method: 'track.getSimilar', track, artist, limit: String(limit), autocorrect: '1' })
 
-      return (data.similartracks.track ?? []).map(t => ({
+      const result = (data.similartracks.track ?? []).map(t => ({
         name: t.name,
         artist: t.artist.name,
         match: parseFloat(t.match),
         durationMs: parseInt(t.duration || '0') * 1000,
         listeners: parseInt(t.listeners ?? '0'),
       }))
+      await redis.setex(key, CACHE_TTL, JSON.stringify(result))
+      return result
     } catch {
-      return []  // §5.7 track similarity missing → caller falls back to artist similarity
+      return []
     }
   }
 
   async getSimilarArtists(artist: string, limit = 50): Promise<LastFmSimilarArtist[]> {
+    const key = ck('sa', artist, limit)
+    const hit = await redis.get(key)
+    if (hit) return JSON.parse(hit) as LastFmSimilarArtist[]
+
     try {
       const data = await this.fetch<{
         similarartists: { artist: Array<{ name: string; match: string }> }
       }>({ method: 'artist.getSimilar', artist, limit: String(limit), autocorrect: '1' })
 
-      return (data.similarartists.artist ?? []).map(a => ({
+      const result = (data.similarartists.artist ?? []).map(a => ({
         name: a.name,
         match: parseFloat(a.match),
       }))
+      await redis.setex(key, CACHE_TTL, JSON.stringify(result))
+      return result
     } catch {
-      return []  // §5.7 artist similarity missing → tag similarity fallback
+      return []
     }
   }
 
-  async getArtistTopTracks(artist: string, limit = 10): Promise<LastFmArtistTrack[]> {
+  async getArtistTopTracks(artist: string, limit = 10, page = 1): Promise<LastFmArtistTrack[]> {
+    const key = ck('tt', artist, limit, page)
+    const hit = await redis.get(key)
+    if (hit) return JSON.parse(hit) as LastFmArtistTrack[]
+
     try {
       const data = await this.fetch<{
         toptracks: { track: Array<{
@@ -146,41 +179,111 @@ class LastFmClient {
           playcount: string
           artist: { name: string }
         }> }
-      }>({ method: 'artist.getTopTracks', artist, limit: String(limit), autocorrect: '1' })
+      }>({ method: 'artist.getTopTracks', artist, limit: String(limit), page: String(page), autocorrect: '1' })
 
-      return (data.toptracks.track ?? []).map(t => ({
+      const result = (data.toptracks.track ?? []).map(t => ({
         name: t.name,
         artist: t.artist.name,
         durationMs: parseInt(t.duration || '0') * 1000,
         listeners: parseInt(t.listeners ?? '0'),
         playcount: parseInt(t.playcount ?? '0'),
       }))
+      await redis.setex(key, CACHE_TTL, JSON.stringify(result))
+      return result
     } catch {
       return []
     }
   }
 
   async getArtistTopTags(artist: string): Promise<string[]> {
+    const key = ck('tags', artist)
+    const hit = await redis.get(key)
+    if (hit) return JSON.parse(hit) as string[]
+
     try {
       const data = await this.fetch<{
         toptags: { tag: Array<{ name: string; count: string }> }
       }>({ method: 'artist.getTopTags', artist, autocorrect: '1' })
 
-      return (data.toptags.tag ?? [])
-        .slice(0, 10)
-        .map(t => t.name)
+      const result = (data.toptags.tag ?? []).slice(0, 10).map(t => t.name)
+      await redis.setex(key, CACHE_TTL, JSON.stringify(result))
+      return result
     } catch {
       return []
     }
   }
 
-  async getTagTopArtists(tag: string, limit = 20): Promise<string[]> {
+  async getTagTopArtists(tag: string, limit = 20, page = 1): Promise<string[]> {
+    const key = ck('tagartists', tag, limit, page)
+    const hit = await redis.get(key)
+    if (hit) return JSON.parse(hit) as string[]
+
     try {
       const data = await this.fetch<{
         topartists: { artist: Array<{ name: string }> }
-      }>({ method: 'tag.getTopArtists', tag, limit: String(limit) })
+      }>({ method: 'tag.getTopArtists', tag, limit: String(limit), page: String(page) })
 
-      return (data.topartists.artist ?? []).map(a => a.name)
+      const result = (data.topartists.artist ?? []).map(a => a.name)
+      await redis.setex(key, CACHE_TTL, JSON.stringify(result))
+      return result
+    } catch {
+      return []
+    }
+  }
+
+  async getArtistTopAlbums(artist: string, limit = 3): Promise<Array<{ name: string; artist: string }>> {
+    const key = ck('albums', artist, limit)
+    const hit = await redis.get(key)
+    if (hit) return JSON.parse(hit) as Array<{ name: string; artist: string }>
+
+    try {
+      const data = await this.fetch<{
+        topalbums: { album: Array<{ name: string; artist: { name: string } }> }
+      }>({ method: 'artist.getTopAlbums', artist, limit: String(limit), autocorrect: '1' })
+
+      const SKIP = /greatest hits|best of|compilation|live at|live from|collection|essential|anthology|deluxe|remaster/i
+      const result = (data.topalbums.album ?? [])
+        .filter(a => !SKIP.test(a.name))
+        .map(a => ({ name: a.name, artist: a.artist.name }))
+
+      await redis.setex(key, CACHE_TTL, JSON.stringify(result))
+      return result
+    } catch {
+      return []
+    }
+  }
+
+  async getAlbumTracks(artist: string, album: string): Promise<LastFmAlbumTrack[]> {
+    const key = ck('albumtracks', artist, album)
+    const hit = await redis.get(key)
+    if (hit) return JSON.parse(hit) as LastFmAlbumTrack[]
+
+    try {
+      const data = await this.fetch<{
+        album: {
+          tracks?: {
+            track:
+              | Array<{ name: string; duration: string; artist: { name: string } }>
+              | { name: string; duration: string; artist: { name: string } }
+          }
+        }
+      }>({ method: 'album.getInfo', artist, album, autocorrect: '1' })
+
+      if (!data.album.tracks) {
+        await redis.setex(key, CACHE_TTL, '[]')
+        return []
+      }
+
+      const raw = data.album.tracks.track
+      const tracks = Array.isArray(raw) ? raw : [raw]
+
+      const result = tracks.map(t => ({
+        name: t.name,
+        artist: t.artist.name,
+        durationMs: parseInt(t.duration || '0') * 1000,
+      }))
+      await redis.setex(key, CACHE_TTL, JSON.stringify(result))
+      return result
     } catch {
       return []
     }

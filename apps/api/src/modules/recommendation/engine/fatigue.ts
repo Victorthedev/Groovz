@@ -95,6 +95,7 @@ export function applyTrackToSession(track: CanonicalTrack, session: PlaylistSess
   session.selectedTracks.push(track)
   session.currentDurationMs += track.durationMs ?? DEFAULT_TRACK_DURATION_MS
   session.artistCount.set(artist, (session.artistCount.get(artist) ?? 0) + 1)
+  if ((track.popularity ?? 0) >= 0.75) session.popularTrackCount++
 
   for (const tag of track.tags) {
     session.tagCount.set(tag, (session.tagCount.get(tag) ?? 0) + 1)

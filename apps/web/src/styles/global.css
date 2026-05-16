@@ -110,6 +110,12 @@ img {
   50%       { opacity: 0.7; }
 }
 
+/* Used on: loading bars inside buttons — uses currentColor so it works everywhere */
+@keyframes barLoad {
+  0%, 100% { transform: scaleY(0.2); }
+  50%       { transform: scaleY(1);   }
+}
+
 /* ─── Reduced motion ─────────────────────────────────────────────────────────── */
 
 @media (prefers-reduced-motion: reduce) {

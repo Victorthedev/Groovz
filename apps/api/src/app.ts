@@ -12,7 +12,10 @@ import { createSocketServer } from './shared/utils/socket.js'
 
 const app = Fastify({ logger: true })
 
-app.register(cors)
+app.register(cors, {
+  origin: process.env.WEB_BASE_URL ?? 'http://localhost:3000',
+  credentials: true,
+})
 app.register(jwt, { secret: process.env.JWT_SECRET ?? 'dev-secret-change-in-production' })
 
 // A single non-encapsulated container carries the /api/v1 prefix.

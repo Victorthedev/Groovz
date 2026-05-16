@@ -152,15 +152,20 @@ export default function Chat() {
             >
               <p className={styles.bubbleText}>{msg.content}</p>
               {msg.blueprintId && (
-                <button
-                  className={styles.viewPlaylistBtn}
-                  onClick={() => {
-                    setResultBlueprintId(msg.blueprintId!)
-                    setResultOpen(true)
-                  }}
-                >
-                  View playlist →
-                </button>
+                generation.status === 'complete' && generation.blueprintId === msg.blueprintId
+                  ? (
+                    <button
+                      className={styles.viewPlaylistBtn}
+                      onClick={() => {
+                        setResultBlueprintId(msg.blueprintId!)
+                        setResultOpen(true)
+                      }}
+                    >
+                      View playlist →
+                    </button>
+                  ) : generation.status === 'error' && generation.blueprintId === msg.blueprintId
+                  ? <span className={styles.viewPlaylistBtn} style={{ color: 'var(--color-text-muted)' }}>Generation failed — try again</span>
+                  : <span className={styles.viewPlaylistBtn} style={{ opacity: 0.5 }}>Creating playlist…</span>
               )}
             </div>
           ))}

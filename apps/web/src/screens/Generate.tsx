@@ -61,10 +61,11 @@ export default function Generate() {
   const [playlists, setPlaylists]   = useState<LibraryPlaylist[]>([])
   const [libraryTab, setLibraryTab] = useState<'tracks' | 'playlists'>('tracks')
   const [playlistTracks, setPlaylistTracks] = useState<LibraryTrack[]>([])
-  const [loadingLib, setLoadingLib] = useState(false)
-  const [promptIdx, setPromptIdx]   = useState(0)
-  const [resultOpen, setResultOpen] = useState(false)
-  const [history, setHistory]       = useState<HistoryItem[]>([])
+  const [loadingLib, setLoadingLib]       = useState(false)
+  const [generatingNow, setGeneratingNow] = useState(false)
+  const [promptIdx, setPromptIdx]         = useState(0)
+  const [resultOpen, setResultOpen]       = useState(false)
+  const [history, setHistory]             = useState<HistoryItem[]>([])
 
   const generation = useGenerationStore()
   const toast      = useToast()
@@ -133,10 +134,11 @@ export default function Generate() {
     if (genType !== 'prompt' && !seedTrack) { toast('Pick a seed track first', 'error'); return }
     if (genType !== 'seed' && !prompt.trim()) { toast('Enter a prompt first', 'error'); return }
 
+    setGeneratingNow(true)
     try {
       const body: Record<string, unknown> = { type: genType, platform, intent: { durationMinutes: duration } }
-      if (seedTrack)   body['seedDisplayId'] = seedTrack.displayId
-      if (prompt.trim()) body['prompt'] = prompt.trim()
+      if (seedTrack)     body['seedDisplayId'] = seedTrack.displayId
+      if (prompt.trim()) body['prompt']         = prompt.trim()
       if (energy)        (body['intent'] as Record<string, unknown>)['energy'] = energy
       if (tempo)         (body['intent'] as Record<string, unknown>)['tempo']  = tempo
 
@@ -145,6 +147,8 @@ export default function Generate() {
       setStep('type')
     } catch (e) {
       toast((e as Error).message, 'error')
+    } finally {
+      setGeneratingNow(false)
     }
   }
 
@@ -438,7 +442,7 @@ export default function Generate() {
                     </div>
                   )}
 
-                  <Button fullWidth onClick={handleGenerate}>Generate</Button>
+                  <Button fullWidth loading={generatingNow} onClick={handleGenerate}>Generate</Button>
                   <Button variant="ghost" fullWidth onClick={() => setStep('inputs')}>Back</Button>
                 </div>
               )}

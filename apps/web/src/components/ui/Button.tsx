@@ -10,6 +10,38 @@ interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
   children: ReactNode
 }
 
+// Inline frequency bars — uses currentColor so they're visible on any button background
+function LoadingBars() {
+  return (
+    <span
+      aria-hidden="true"
+      style={{
+        display: 'inline-flex',
+        alignItems: 'flex-end',
+        gap: '2px',
+        height: 16,
+        overflow: 'hidden',
+      }}
+    >
+      {[0, 1, 2, 3, 4].map(i => (
+        <span
+          key={i}
+          style={{
+            display: 'inline-block',
+            width: 3,
+            height: 16,
+            background: 'currentColor',
+            borderRadius: 2,
+            transformOrigin: 'bottom center',
+            animation: 'barLoad 0.9s ease-in-out infinite',
+            animationDelay: `${i * 0.12}s`,
+          }}
+        />
+      ))}
+    </span>
+  )
+}
+
 export default function Button({
   variant = 'primary',
   loading = false,
@@ -28,7 +60,7 @@ export default function Button({
 
   return (
     <button className={classes} disabled={disabled || loading} {...rest}>
-      {loading ? <span className={styles.spinner} aria-hidden="true" /> : children}
+      {loading ? <LoadingBars /> : children}
     </button>
   )
 }

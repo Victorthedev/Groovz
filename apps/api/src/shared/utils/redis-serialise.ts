@@ -26,6 +26,7 @@ interface SerialisedSession {
   seedTrackArtist?: string
   promptEmbedding?: number[]
   embeddingFailed: boolean
+  popularTrackCount: number
 }
 
 interface SerialisedPool {

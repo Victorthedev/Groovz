@@ -38,7 +38,7 @@ export function bestResult(
     if (score > bestScore) { bestScore = score; best = r }
   }
 
-  return bestScore >= 0.8 ? best : null
+  return bestScore >= 0.75 ? best : null
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

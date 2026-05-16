@@ -4,7 +4,7 @@ import { classifyMusicDomain, chatCompletion, type ChatMessage } from '../recomm
 import { startGeneration } from '../recommendation/recommendation.service.js'
 
 const CHAT_SESSION_TTL = 30 * 60  // 30 minutes
-const GENERATE_TAG = /\[GENERATE\]([\s\S]*?)\[\/GENERATE\]/
+const GENERATE_TAG = /\[GENERATE\]([\s\S]*?)(?:\[\/GENERATE\]|$)/
 
 interface ChatSession {
   sessionId: string
