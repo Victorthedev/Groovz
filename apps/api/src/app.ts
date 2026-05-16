@@ -1,7 +1,12 @@
 import Fastify from 'fastify'
 import cors from '@fastify/cors'
 import jwt from '@fastify/jwt'
-import { registerRoutes } from './api/index.js'
+import authPlugin from './modules/auth/index.js'
+import userPlugin from './modules/user/index.js'
+import recommendationPlugin from './modules/recommendation/index.js'
+import billingPlugin from './modules/billing/index.js'
+import exportPlugin from './modules/export/index.js'
+import chatPlugin from './modules/chat/index.js'
 import { startPlaylistGenerationWorker } from './jobs/playlist-generation.job.js'
 import { createSocketServer } from './shared/utils/socket.js'
 
@@ -10,13 +15,23 @@ const app = Fastify({ logger: true })
 app.register(cors)
 app.register(jwt, { secret: process.env.JWT_SECRET ?? 'dev-secret-change-in-production' })
 
-app.register(registerRoutes)
+// A single non-encapsulated container carries the /api/v1 prefix.
+// fp() plugins inside inherit the container scope (and its prefix) correctly.
+// Registering fp() plugins with { prefix } directly on app causes the prefix
+// to be skipped because fp() runs in the parent scope, not a new prefixed child.
+app.register(async (fastify) => {
+  fastify.register(authPlugin)
+  fastify.register(userPlugin)
+  fastify.register(recommendationPlugin)
+  fastify.register(billingPlugin)
+  fastify.register(exportPlugin)
+  fastify.register(chatPlugin)
+}, { prefix: '/api/v1' })
 
 app.get('/health', async () => ({ status: 'ok' }))
 
 const start = async () => {
   try {
-    // ready() ensures JWT plugin is initialised before we reference app.jwt.verify
     await app.ready()
 
     createSocketServer(

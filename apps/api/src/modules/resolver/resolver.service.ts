@@ -25,15 +25,24 @@ export async function resolveBlueprint(
   const resolved: ResolvedTrack[] = []
   const failed: CanonicalTrack[] = []
   const seedWasRemix = blueprint.seedWasRemix ?? false
+  let tokenRefreshed = false
 
   for (const track of blueprint.tracks) {
-    const result = await resolveOne(track, platform, accessToken, seedWasRemix)
-
-    if (result) {
-      resolved.push(result)
-    } else {
-      failed.push(track)
+    let result: ResolvedTrack | null = null
+    try {
+      result = await resolveOne(track, platform, accessToken, seedWasRemix)
+    } catch (err: unknown) {
+      if ((err as { statusCode?: number }).statusCode === 401 && platform === 'spotify' && !tokenRefreshed) {
+        try {
+          accessToken = await refreshSpotifyToken(userId)
+          tokenRefreshed = true
+          result = await resolveOne(track, platform, accessToken, seedWasRemix)
+        } catch { /* refresh failed — drop this track */ }
+      }
     }
+
+    if (result) resolved.push(result)
+    else failed.push(track)
   }
 
   // §5.9 — for each failed track, try backup pool candidates
@@ -89,12 +98,12 @@ async function resolveOne(
     }
   }
 
-  // Search the platform
+  // Search the platform — propagate 401 so the caller can refresh and retry
   let results
   try {
     results = await searchPlatform(track.title, track.artist, platform, accessToken)
   } catch (err: unknown) {
-    if ((err as { statusCode?: number }).statusCode === 401) return null  // caller handles refresh
+    if ((err as { statusCode?: number }).statusCode === 401) throw err
     return null
   }
 

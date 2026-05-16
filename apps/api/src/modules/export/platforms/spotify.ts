@@ -1,3 +1,5 @@
+import type { AudioFeatures } from '../harmonic-sequencer.js'
+
 const API = 'https://api.spotify.com/v1'
 
 export async function getSpotifyUserId(accessToken: string): Promise<string> {
@@ -42,4 +44,46 @@ export async function addTracksToSpotifyPlaylist(
     })
     if (!res.ok) throw Object.assign(new Error('Failed to add tracks to Spotify playlist'), { statusCode: 502 })
   }
+}
+
+// ─── Audio features (for harmonic sequencing) ─────────────────────────────────
+
+export async function getSpotifyAudioFeatures(
+  trackIds: string[],
+  accessToken: string,
+): Promise<Map<string, AudioFeatures>> {
+  const features = new Map<string, AudioFeatures>()
+  const headers = { Authorization: `Bearer ${accessToken}` }
+
+  // Batch in groups of 100 (Spotify limit)
+  for (let i = 0; i < trackIds.length; i += 100) {
+    const batch = trackIds.slice(i, i + 100)
+    const ids = batch.join(',')
+
+    const res = await fetch(`${API}/audio-features?ids=${ids}`, { headers })
+    if (!res.ok) continue  // non-fatal — sequencer falls back to neutral defaults
+
+    const data = (await res.json()) as {
+      audio_features: Array<{
+        id: string
+        tempo: number
+        key: number
+        mode: number
+        energy: number
+      } | null>
+    }
+
+    for (const f of data.audio_features) {
+      if (!f) continue  // null = Spotify couldn't analyse this track (e.g. local file)
+      features.set(f.id, {
+        id: f.id,
+        tempo: f.tempo,
+        key: f.key,
+        mode: f.mode,
+        energy: f.energy,
+      })
+    }
+  }
+
+  return features
 }

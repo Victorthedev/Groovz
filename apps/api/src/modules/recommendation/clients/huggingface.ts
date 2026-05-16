@@ -4,9 +4,20 @@ import { TAG_MAPPINGS, normaliseTag } from '../../../shared/data/tag-mappings.js
 import type { Intent } from '../../../shared/types/index.js'
 
 const HF_BASE = 'https://api-inference.huggingface.co/models'
-const INTENT_MODEL = 'facebook/bart-large-mnli'
-const EMBED_MODEL = 'sentence-transformers/all-MiniLM-L6-v2'
+const INTENT_MODEL  = 'facebook/bart-large-mnli'
+const EMBED_MODEL   = 'sentence-transformers/all-MiniLM-L6-v2'
 const EMBED_CACHE_TTL = 60 * 60 * 24  // 24 hours (§7)
+
+const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions'
+const GROQ_MODEL   = 'llama-3.1-8b-instant'
+
+// System prompt — locked per §7. Never modify without explicit instruction.
+const CHAT_SYSTEM_PROMPT = `You are a playlist assistant. You only respond to music and playlist-related requests. If the user asks anything unrelated to music, playlists, or audio, respond only with: "I can only help with playlist creation." Never deviate from this. Never discuss other topics.
+
+When you have gathered enough information to generate a playlist (mood, vibe, genre, or activity is clear), include a generation trigger at the very end of your response in this exact format and nothing after it:
+[GENERATE]{"type":"prompt","prompt":"<one-sentence description of the playlist>","intent":{"energy":"<low|medium|high>","durationMinutes":<number, default 60>}}[/GENERATE]
+
+Only include the trigger once you are confident. If the user has not given enough context, ask one short clarifying question first.`
 
 // ─── Intent extraction ────────────────────────────────────────────────────────
 
@@ -128,7 +139,61 @@ function meanPool(tensor: number[][][]): number[] {
   return result.map(v => v / vecs.length)
 }
 
-// Match prompt words against the tag mapping keys (§16.3).
+// ─── Domain classification (§7) ───────────────────────────────────────────────
+// Classify before sending to Mistral — reject off-topic messages cheaply.
+// Fails open: if HF is down, allow the message through.
+
+export async function classifyMusicDomain(message: string): Promise<boolean> {
+  try {
+    const results = await zeroShotClassify(message, [
+      'music playlist request',
+      'unrelated non-music topic',
+    ])
+    return results[0]?.label === 'music playlist request'
+  } catch {
+    return true
+  }
+}
+
+// ─── Conversational chat (§7) ─────────────────────────────────────────────────
+
+export interface ChatMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+export async function chatCompletion(
+  history: ChatMessage[],
+  userMessage: string,
+): Promise<string> {
+  const key = process.env.GROQ_API_KEY
+  if (!key) throw new Error('GROQ_API_KEY not configured')
+
+  const messages = [
+    { role: 'system', content: CHAT_SYSTEM_PROMPT },
+    ...history.map(m => ({ role: m.role as string, content: m.content })),
+    { role: 'user', content: userMessage },
+  ]
+
+  const res = await fetch(GROQ_API_URL, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${key}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ model: GROQ_MODEL, messages, max_tokens: 500, temperature: 0.7 }),
+  })
+
+  if (!res.ok) throw new Error(`Groq ${res.status}: ${await res.text()}`)
+
+  const data = (await res.json()) as {
+    choices: Array<{ message: { content: string } }>
+  }
+
+  return data.choices[0]?.message.content?.trim() ?? "I'm having trouble right now. Please try again."
+}
+
+// ─── Match prompt words against the tag mapping keys (§16.3). ────────────────
 function extractTagsFromPrompt(prompt: string): string[] {
   const lower = prompt.toLowerCase()
   const found: string[] = []

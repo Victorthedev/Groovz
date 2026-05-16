@@ -15,7 +15,7 @@ export async function registerPlatformRoutes(fastify: FastifyInstance) {
       const body = z.object({ platform: platformParam }).safeParse(request.body)
       if (!body.success) return reply.status(400).send({ error: 'Invalid platform' })
 
-      const authUrl = platformService.getOAuthUrl(
+      const authUrl = await platformService.getOAuthUrl(
         body.data.platform,
         request.user.userId,
         (uid, plat) => signOAuthState(uid, plat, fastify),
@@ -49,18 +49,40 @@ export async function registerPlatformRoutes(fastify: FastifyInstance) {
     return reply.redirect(`${webBase}/connect-success?platform=${params.data.platform}`)
   })
 
-  // Fetch user's library from a connected platform
+  // Fetch user's library from a connected platform.
+  // ?platform=spotify                    → liked songs + playlists list
+  // ?platform=spotify&playlistId={id}    → tracks from a specific playlist
   fastify.get(
     '/platforms/library',
     { preHandler: [fastify.authenticate] },
     async (request, reply) => {
       const query = z
-        .object({ platform: platformParam })
+        .object({
+          platform: platformParam,
+          playlistId: z.string().optional(),
+        })
         .safeParse(request.query)
       if (!query.success) return reply.status(400).send({ error: 'Invalid platform' })
 
-      const tracks = await platformService.getLibrary(request.user.userId, query.data.platform)
-      return reply.send({ tracks })
+      const { platform, playlistId } = query.data
+
+      if (playlistId) {
+        const tracks = await platformService.getPlaylistTracks(request.user.userId, platform, playlistId)
+        return reply.send({ tracks })
+      }
+
+      const data = await platformService.getLibrary(request.user.userId, platform)
+      return reply.send(data)
+    },
+  )
+
+  // List connected platforms — used by Profile screen
+  fastify.get(
+    '/platforms/connected',
+    { preHandler: [fastify.authenticate] },
+    async (request, reply) => {
+      const platforms = await platformService.getConnectedPlatforms(request.user.userId)
+      return reply.send({ platforms })
     },
   )
 

@@ -6,8 +6,10 @@ import {
   getSpotifyUserId,
   createSpotifyPlaylist,
   addTracksToSpotifyPlaylist,
+  getSpotifyAudioFeatures,
 } from './platforms/spotify.js'
-import type { PlaylistBlueprint } from '../../shared/types/index.js'
+import { harmonicSequence } from './harmonic-sequencer.js'
+import type { PlaylistBlueprint, ResolvedTrack } from '../../shared/types/index.js'
 
 const BLUEPRINT_KEY = (id: string) => `blueprint:${id}`
 
@@ -43,10 +45,13 @@ export async function exportBlueprint(
     )
   }
 
+  // Harmonic sequencing — Spotify only (§16.5); other platforms fall back to tag-based order
+  const orderedTrackIds = await getOrderedTrackIds(resolved, platform, userId)
+
   // Create the playlist on the platform and add tracks
   const { platformPlaylistId, platformPlaylistUrl } = await createPlatformPlaylist(
     platform,
-    resolved.map(r => r.platformTrackId),
+    orderedTrackIds,
     userId,
   )
 
@@ -66,6 +71,32 @@ export async function exportBlueprint(
   })
 
   return { platformPlaylistId, platformPlaylistUrl, trackCount: resolved.length, failedTracks: failedCount }
+}
+
+// ─── Harmonic sequencing ──────────────────────────────────────────────────────
+
+async function getOrderedTrackIds(
+  resolved: ResolvedTrack[],
+  platform: string,
+  userId: string,
+): Promise<string[]> {
+  if (platform !== 'spotify') {
+    // Other platforms don't expose audio features — use tag-based order as-is
+    return resolved.map(r => r.platformTrackId)
+  }
+
+  try {
+    const accessToken = await getAccessToken(userId, 'spotify')
+    const features = await getSpotifyAudioFeatures(
+      resolved.map(r => r.platformTrackId),
+      accessToken,
+    )
+    const ordered = harmonicSequence(resolved, features)
+    return ordered.map(r => r.platformTrackId)
+  } catch {
+    // Sequencing failure is non-fatal — fall back to tag-based order
+    return resolved.map(r => r.platformTrackId)
+  }
 }
 
 // ─── Platform dispatch ────────────────────────────────────────────────────────

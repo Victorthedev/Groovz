@@ -1,0 +1,49 @@
+.container {
+  position: fixed;
+  top: max(var(--space-4), env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - var(--space-8));
+  max-width: calc(var(--screen-max) - var(--space-8));
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  pointer-events: none;
+}
+
+.toast {
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-text-primary);
+  pointer-events: all;
+
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+
+  animation: slideDown var(--duration-base) var(--ease-out) forwards;
+}
+
+.toast.exiting {
+  animation: slideUp var(--duration-fast) var(--ease-in) forwards;
+}
+
+.toast.success { border-left: 3px solid var(--color-success);     }
+.toast.error   { border-left: 3px solid var(--color-destructive);  }
+.toast.info    { border-left: 3px solid var(--color-accent);       }
+
+@keyframes slideDown {
+  from { transform: translateY(-100%); opacity: 0; }
+  to   { transform: translateY(0);     opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(0);     opacity: 1; }
+  to   { transform: translateY(-100%); opacity: 0; }
+}

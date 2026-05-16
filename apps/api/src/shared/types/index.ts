@@ -41,12 +41,20 @@ export interface ResolvedTrack {
   confidence: number
 }
 
-// ─── Platform display type (frontend-safe, no platform IDs) ──────────────────
+// ─── Platform display types (frontend-safe, no platform IDs) ─────────────────
 
 export interface LibraryTrack {
   displayId: string       // our own temporary ID, never the platform's
   title: string
   artist: string
+  artworkUrl: string
+  source: 'spotify' | 'deezer' | 'audiomack' | 'youtube_music'
+}
+
+export interface LibraryPlaylist {
+  displayPlaylistId: string  // our own temporary ID, never the platform's
+  name: string
+  trackCount: number
   artworkUrl: string
   source: 'spotify' | 'deezer' | 'audiomack' | 'youtube_music'
 }

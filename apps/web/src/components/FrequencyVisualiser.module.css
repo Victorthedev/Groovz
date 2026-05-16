@@ -1,0 +1,55 @@
+.canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* DOM bar version (pill, nav icon) */
+.bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+}
+
+.bar {
+  width: 3px;
+  border-radius: 2px;
+  background: linear-gradient(
+    to top,
+    var(--color-accent),
+    var(--color-accent-warm),
+    var(--color-accent-peak)
+  );
+  transform-origin: bottom center;
+}
+
+.bar.idle {
+  animation: barIdle 2s ease-in-out infinite;
+}
+
+.bar.generating {
+  animation: barGenerate 0.8s ease-in-out infinite;
+}
+
+.bar.complete {
+  animation: barComplete 3s ease-in-out infinite;
+}
+
+@keyframes barIdle {
+  0%, 100% { transform: scaleY(0.15); }
+  50%       { transform: scaleY(0.5);  }
+}
+
+@keyframes barGenerate {
+  0%, 100% { transform: scaleY(0.2); }
+  50%       { transform: scaleY(1.0);  }
+}
+
+@keyframes barComplete {
+  0%, 100% { transform: scaleY(0.4); }
+  50%       { transform: scaleY(0.6);  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bar { animation: none; transform: scaleY(0.35); }
+}

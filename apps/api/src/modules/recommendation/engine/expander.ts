@@ -1,6 +1,7 @@
 import { lastfm } from '../clients/lastfm.js'
 import { canonicalId, normaliseArtist } from './normaliser.js'
 import { deriveTrackFeatures } from '../../../shared/data/tag-mappings.js'
+import { DEFAULT_TRACK_DURATION_MS } from '../../../shared/utils/index.js'
 import type { CanonicalTrack, Intent } from '../../../shared/types/index.js'
 import type { CandidatePool } from '../../../shared/types/session.js'
 
@@ -134,7 +135,7 @@ function addToRaw(
     artist,
     tags,
     baseSimilarity: Math.min(1, input.baseSimilarity),
-    durationMs: input.durationMs,
+    durationMs: input.durationMs || DEFAULT_TRACK_DURATION_MS,
     popularity: normaliseListeners(input.listeners ?? 0),
     energy: energy ?? undefined,
     tempo: tempo ?? undefined,

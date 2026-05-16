@@ -1,3 +1,4 @@
+import { DEFAULT_TRACK_DURATION_MS } from '../../../shared/utils/index.js'
 import type { CanonicalTrack } from '../../../shared/types/index.js'
 import type { PlaylistSession } from '../../../shared/types/session.js'
 
@@ -6,8 +7,7 @@ const SHORT_TRACK_THRESHOLD_MS = 5 * 60 * 1000 // 5 minutes
 const OVERFLOW_ALLOWANCE_MS = 2 * 60 * 1000   // ±2 minutes
 
 export function fitsInSession(track: CanonicalTrack, session: PlaylistSession): boolean {
-  const durationMs = track.durationMs ?? 0
-  if (durationMs === 0) return true  // unknown duration — allow, generator handles it
+  const durationMs = track.durationMs ?? DEFAULT_TRACK_DURATION_MS
 
   if (session.currentDurationMs + durationMs <= session.maxDurationMs) return true
 

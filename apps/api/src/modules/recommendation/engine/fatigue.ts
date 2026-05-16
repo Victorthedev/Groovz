@@ -1,4 +1,5 @@
 import { normaliseArtist } from './normaliser.js'
+import { DEFAULT_TRACK_DURATION_MS } from '../../../shared/utils/index.js'
 import type { CanonicalTrack } from '../../../shared/types/index.js'
 import type { PlaylistSession } from '../../../shared/types/session.js'
 
@@ -92,7 +93,7 @@ export function applyTrackToSession(track: CanonicalTrack, session: PlaylistSess
   const artist = normaliseArtist(track.artist)
 
   session.selectedTracks.push(track)
-  session.currentDurationMs += track.durationMs ?? 0
+  session.currentDurationMs += track.durationMs ?? DEFAULT_TRACK_DURATION_MS
   session.artistCount.set(artist, (session.artistCount.get(artist) ?? 0) + 1)
 
   for (const tag of track.tags) {

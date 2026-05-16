@@ -1,0 +1,1213 @@
+{
+  "info": {
+    "_postman_id": "groovz-api-v1",
+    "name": "Groovz API",
+    "description": "Groovz music intelligence platform — local dev collection.\n\nServer: http://localhost:3001\n\n**Testing order:**\n1. Auth → Signup (tokens saved automatically)\n2. Platforms → Connect Platform → copy authUrl, open in browser, complete OAuth\n3. Platforms → Get Library (display_id saved automatically)\n4. Playlists → Generate — Seed\n5. Watch server logs for job completion (~10–30s)\n6. Playlists → Get Blueprint\n7. Playlists → Export to Spotify\n\n**Auto-saved variables:** access_token · refresh_token · blueprint_id · display_id",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{access_token}}", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "access_token",       "value": "", "type": "string" },
+    { "key": "refresh_token",      "value": "", "type": "string" },
+    { "key": "blueprint_id",       "value": "", "type": "string" },
+    { "key": "display_id",         "value": "", "type": "string" },
+    { "key": "display_playlist_id", "value": "", "type": "string" },
+    { "key": "chat_session_id",     "value": "", "type": "string" }
+  ],
+  "item": [
+
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/health",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3001",
+              "path": ["health"]
+            },
+            "description": "Confirms the server is running."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"status\": \"ok\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Signup",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.accessToken) {",
+                  "    pm.collectionVariables.set('access_token', res.accessToken);",
+                  "    pm.collectionVariables.set('refresh_token', res.refreshToken);",
+                  "    console.log('Tokens saved.');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\",\n  \"region\": \"US\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "http://localhost:3001/api/v1/auth/signup",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3001",
+              "path": ["api", "v1", "auth", "signup"]
+            },
+            "description": "Creates a new account. Tokens are saved automatically.\n\nRegion: NG | UK | EU | US | CA"
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"accessToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI1NTBlODQwMC1lMjliLTQxZDQtYTcxNi00NDY2NTU0NDAwMDAiLCJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzE1NjgwMDAwLCJleHAiOjE3MTU2ODA5MDB9.signature\",\n  \"refreshToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI1NTBlODQwMC1lMjliLTQxZDQtYTcxNi00NDY2NTU0NDAwMDAiLCJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJ0eXBlIjoicmVmcmVzaCIsImlhdCI6MTcxNTY4MDAwMCwiZXhwIjoxNzE2Mjg0ODAwfQ.signature\"\n}"
+            },
+            {
+              "name": "409 Email Already Registered",
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"error\": \"Email already registered\"\n}"
+            },
+            {
+              "name": "400 Validation Error",
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"error\": \"Invalid request\"\n}"
+            }
+          ]
+        },
+
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.accessToken) {",
+                  "    pm.collectionVariables.set('access_token', res.accessToken);",
+                  "    pm.collectionVariables.set('refresh_token', res.refreshToken);",
+                  "    console.log('Tokens saved.');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "http://localhost:3001/api/v1/auth/login",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3001",
+              "path": ["api", "v1", "auth", "login"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"accessToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example\",\n  \"refreshToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example\"\n}"
+            },
+            {
+              "name": "401 Invalid Credentials",
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"error\": \"Invalid credentials\"\n}"
+            }
+          ]
+        },
+
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.accessToken) {",
+                  "    pm.collectionVariables.set('access_token', res.accessToken);",
+                  "    pm.collectionVariables.set('refresh_token', res.refreshToken);",
+                  "    console.log('Tokens refreshed.');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refresh_token}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "http://localhost:3001/api/v1/auth/refresh",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3001",
+              "path": ["api", "v1", "auth", "refresh"]
+            },
+            "description": "Use when the access token expires (15 minutes). {{refresh_token}} is auto-populated after Signup or Login."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"accessToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example\",\n  \"refreshToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example\"\n}"
+            },
+            {
+              "name": "401 Invalid Refresh Token",
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"error\": \"Invalid refresh token\"\n}"
+            }
+          ]
+        },
+
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/v1/auth/me",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3001",
+              "path": ["api", "v1", "auth", "me"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"email\": \"test@example.com\"\n}"
+            },
+            {
+              "name": "401 Unauthorized",
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"error\": \"Unauthorized\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "name": "Platforms",
+      "item": [
+        {
+          "name": "Connect Platform",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"platform\": \"spotify\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "http://localhost:3001/api/v1/platforms/connect",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3001",
+              "path": ["api", "v1", "platforms", "connect"]
+            },
+            "description": "Returns an OAuth URL. Copy `authUrl` and open in a browser to complete OAuth. Tokens are stored automatically after the callback.\n\nplatform options: spotify | deezer | audiomack | youtube_music\nOnly Spotify is fully implemented in v1."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"authUrl\": \"https://accounts.spotify.com/authorize?response_type=code&client_id=your_client_id&redirect_uri=http%3A%2F%2Flocalhost%3A3001%2Fapi%2Fv1%2Fplatforms%2Fcallback%2Fspotify&scope=user-read-private+user-read-email+user-library-read+playlist-modify-public+playlist-modify-private+user-read-recently-played+user-top-read&state=eyJ1c2VySWQiOiI1NTBlODQwMCIsInBsYXRmb3JtIjoic3BvdGlmeSIsInR5cGUiOiJvYXV0aF9zdGF0ZSJ9&show_dialog=true\"\n}"
+            }
+          ]
+        },
+
+        {
+          "name": "Get Library",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.tracks && res.tracks.length > 0) {",
+                  "    pm.collectionVariables.set('display_id', res.tracks[0].displayId);",
+                  "    console.log('display_id saved: ' + res.tracks[0].displayId);",
+                  "    console.log('First track: ' + res.tracks[0].artist + ' — ' + res.tracks[0].title);",
+                  "    console.log('Liked songs: ' + res.tracks.length);",
+                  "}",
+                  "if (res.playlists && res.playlists.length > 0) {",
+                  "    pm.collectionVariables.set('display_playlist_id', res.playlists[0].displayPlaylistId);",
+                  "    console.log('display_playlist_id saved: ' + res.playlists[0].displayPlaylistId);",
+                  "    console.log('First playlist: ' + res.playlists[0].name + ' (' + res.playlists[0].trackCount + ' tracks)');",
+                  "    console.log('Playlists: ' + res.playlists.length);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/v1/platforms/library?platform=spotify",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3001",
+              "path": ["api", "v1", "platforms", "library"],
+              "query": [
+                {
+                  "key": "platform",
+                  "value": "spotify",
+                  "description": "spotify | deezer | audiomack | youtube_music"
+                }
+              ]
+            },
+            "description": "Returns liked songs and the user's playlists list. Both are fetched in parallel.\n\nFirst track's `display_id` and first playlist's `display_playlist_id` are auto-saved.\n\nPlatform IDs never leave the backend — use `displayId` and `displayPlaylistId` for all subsequent calls."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"tracks\": [\n    {\n      \"displayId\": \"a1b2c3d4e5f6a7b8\",\n      \"title\": \"Blinding Lights\",\n      \"artist\": \"The Weeknd\",\n      \"artworkUrl\": \"https://i.scdn.co/image/ab67616d0000b273abc123\",\n      \"source\": \"spotify\"\n    },\n    {\n      \"displayId\": \"b2c3d4e5f6a7b8c9\",\n      \"title\": \"Levitating\",\n      \"artist\": \"Dua Lipa\",\n      \"artworkUrl\": \"https://i.scdn.co/image/ab67616d0000b273def456\",\n      \"source\": \"spotify\"\n    }\n  ],\n  \"playlists\": [\n    {\n      \"displayPlaylistId\": \"p1a2b3c4d5e6f7g8\",\n      \"name\": \"Chill Vibes\",\n      \"trackCount\": 42,\n      \"artworkUrl\": \"https://i.scdn.co/image/ab67616d0000b273playlist1\",\n      \"source\": \"spotify\"\n    },\n    {\n      \"displayPlaylistId\": \"p2b3c4d5e6f7g8h9\",\n      \"name\": \"Late Night Drive\",\n      \"trackCount\": 28,\n      \"artworkUrl\": \"https://i.scdn.co/image/ab67616d0000b273playlist2\",\n      \"source\": \"spotify\"\n    }\n  ]\n}"
+            },
+            {
+              "name": "400 Not Connected",
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"error\": \"Spotify not connected\"\n}"
+            },
+            {
+              "name": "401 Token Expired",
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"error\": \"Spotify token expired — reconnect platform\"\n}"
+            }
+          ]
+        },
+
+        {
+          "name": "Get Playlist Tracks",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.tracks && res.tracks.length > 0) {",
+                  "    pm.collectionVariables.set('display_id', res.tracks[0].displayId);",
+                  "    console.log('display_id updated to first playlist track: ' + res.tracks[0].displayId);",
+                  "    console.log('First track: ' + res.tracks[0].artist + ' — ' + res.tracks[0].title);",
+                  "    console.log('Tracks in playlist: ' + res.tracks.length);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/v1/platforms/library?platform=spotify&playlistId={{display_playlist_id}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3001",
+              "path": ["api", "v1", "platforms", "library"],
+              "query": [
+                { "key": "platform",   "value": "spotify" },
+                { "key": "playlistId", "value": "{{display_playlist_id}}", "description": "From Get Library response — auto-saved as display_playlist_id" }
+              ]
+            },
+            "description": "Fetches up to 50 tracks from a specific playlist. Run 'Get Library' first to populate `display_playlist_id`.\n\nUpdates `display_id` to the first track in the playlist — ready for seed generation."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"tracks\": [\n    {\n      \"displayId\": \"d4e5f6a7b8c9d0e1\",\n      \"title\": \"Pink + White\",\n      \"artist\": \"Frank Ocean\",\n      \"artworkUrl\": \"https://i.scdn.co/image/ab67616d0000b273blonded\",\n      \"source\": \"spotify\"\n    },\n    {\n      \"displayId\": \"e5f6a7b8c9d0e1f2\",\n      \"title\": \"Nights\",\n      \"artist\": \"Frank Ocean\",\n      \"artworkUrl\": \"https://i.scdn.co/image/ab67616d0000b273blonded\",\n      \"source\": \"spotify\"\n    }\n  ]\n}"
+            },
+            {
+              "name": "400 Playlist Not Found",
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"error\": \"Playlist not found — refetch library\"\n}"
+            }
+          ]
+        },
+
+        {
+          "name": "Disconnect Platform",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/v1/platforms/spotify",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3001",
+              "path": ["api", "v1", "platforms", "spotify"]
+            },
+            "description": "Removes stored OAuth tokens for the platform. Replace `spotify` in the path with the target platform."
+          },
+          "response": [
+            {
+              "name": "204 No Content",
+              "status": "No Content",
+              "code": 204,
+              "_postman_previewlanguage": "text",
+              "header": [],
+              "cookie": [],
+              "body": ""
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "name": "User",
+      "item": [
+        {
+          "name": "Get Preferences",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/v1/user/preferences",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3001",
+              "path": ["api", "v1", "user", "preferences"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"userId\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"defaultPlatform\": null,\n  \"defaultDuration\": 60,\n  \"diversityBias\": 0.5,\n  \"whatsappLinked\": false,\n  \"whatsappPhone\": null\n}"
+            }
+          ]
+        },
+
+        {
+          "name": "Update Preferences",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"defaultPlatform\": \"spotify\",\n  \"defaultDuration\": 60\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "http://localhost:3001/api/v1/user/preferences",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3001",
+              "path": ["api", "v1", "user", "preferences"]
+            },
+            "description": "All fields optional. `diversityBias` (0.0–1.0) requires paid plan."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"userId\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"defaultPlatform\": \"spotify\",\n  \"defaultDuration\": 60,\n  \"diversityBias\": 0.5,\n  \"whatsappLinked\": false,\n  \"whatsappPhone\": null\n}"
+            },
+            {
+              "name": "403 Requires Paid Plan",
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"error\": \"diversityBias tuning requires a paid plan\"\n}"
+            }
+          ]
+        },
+
+        {
+          "name": "Get Capabilities",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/v1/user/capabilities",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3001",
+              "path": ["api", "v1", "user", "capabilities"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK — Free Tier",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"userId\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"plan\": \"free\",\n  \"maxPlaylistDurationMinutes\": 120,\n  \"maxPlaylistsPerMonth\": 10,\n  \"playlistsGeneratedThisMonth\": 2,\n  \"canUseRouteFeature\": false,\n  \"canUseWhatsapp\": false,\n  \"resetDate\": \"2025-06-01T00:00:00.000Z\"\n}"
+            },
+            {
+              "name": "200 OK — Paid Tier",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"userId\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"plan\": \"paid\",\n  \"maxPlaylistDurationMinutes\": 240,\n  \"maxPlaylistsPerMonth\": 9999,\n  \"playlistsGeneratedThisMonth\": 7,\n  \"canUseRouteFeature\": true,\n  \"canUseWhatsapp\": true,\n  \"resetDate\": \"2025-06-01T00:00:00.000Z\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "name": "Playlists",
+      "item": [
+        {
+          "name": "Generate — Seed",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.blueprintId) {",
+                  "    pm.collectionVariables.set('blueprint_id', res.blueprintId);",
+                  "    console.log('blueprintId saved: ' + res.blueprintId);",
+                  "    console.log('Watch server logs — generation takes ~10-30s');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"seed\",\n  \"platform\": \"spotify\",\n  \"seedDisplayId\": \"{{display_id}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "http://localhost:3001/api/v1/playlists/generate",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3001",
+              "path": ["api", "v1", "playlists", "generate"]
+            },
+            "description": "Queues an async generation job. Returns immediately with jobId + blueprintId. Run 'Get Library' first to populate {{display_id}}."
+          },
+          "response": [
+            {
+              "name": "202 Accepted",
+              "status": "Accepted",
+              "code": 202,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"jobId\": \"1\",\n  \"blueprintId\": \"7f3d9a2b-1c4e-4f5a-8d6b-9e0f1a2b3c4d\"\n}"
+            },
+            {
+              "name": "400 Missing seedDisplayId",
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"error\": \"Invalid request\",\n  \"details\": {\n    \"fieldErrors\": { \"seedDisplayId\": [\"seedDisplayId required for seed mode\"] },\n    \"formErrors\": []\n  }\n}"
+            },
+            {
+              "name": "400 Seed Track Not Found",
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"error\": \"Seed track not found — refetch library\"\n}"
+            },
+            {
+              "name": "403 Monthly Limit Reached",
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"error\": \"Monthly playlist limit reached\"\n}"
+            }
+          ]
+        },
+
+        {
+          "name": "Generate — Prompt",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.blueprintId) {",
+                  "    pm.collectionVariables.set('blueprint_id', res.blueprintId);",
+                  "    console.log('blueprintId saved: ' + res.blueprintId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"prompt\",\n  \"platform\": \"spotify\",\n  \"prompt\": \"late night coding session, chill and focused\",\n  \"intent\": {\n    \"energy\": \"low\",\n    \"durationMinutes\": 60\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "http://localhost:3001/api/v1/playlists/generate",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3001",
+              "path": ["api", "v1", "playlists", "generate"]
+            },
+            "description": "Text-prompt generation. HuggingFace may be slow on first call (cold start ~20s).\n\nOptional intent overrides HuggingFace: energy (low|medium|high), tempo (slow|medium|fast), mood (string[]), durationMinutes (max 120 free tier)."
+          },
+          "response": [
+            {
+              "name": "202 Accepted",
+              "status": "Accepted",
+              "code": 202,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"jobId\": \"2\",\n  \"blueprintId\": \"8a4e0b3c-2d5f-4e6a-9f7c-0b1e2a3b4c5d\"\n}"
+            },
+            {
+              "name": "400 Duration Too Long",
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"error\": \"Duration too long\",\n  \"message\": \"Maximum is 120 minutes for a single playlist. Would you like a 2-hour playlist instead?\",\n  \"suggestedDurationMinutes\": 120\n}"
+            }
+          ]
+        },
+
+        {
+          "name": "Generate — Hybrid",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.blueprintId) {",
+                  "    pm.collectionVariables.set('blueprint_id', res.blueprintId);",
+                  "    console.log('blueprintId saved: ' + res.blueprintId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"hybrid\",\n  \"platform\": \"spotify\",\n  \"seedDisplayId\": \"{{display_id}}\",\n  \"prompt\": \"keep it energetic\",\n  \"intent\": {\n    \"energy\": \"high\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "http://localhost:3001/api/v1/playlists/generate",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3001",
+              "path": ["api", "v1", "playlists", "generate"]
+            },
+            "description": "Combines a seed track and a text prompt. Uses both Last.fm similarity and HuggingFace intent extraction."
+          },
+          "response": [
+            {
+              "name": "202 Accepted",
+              "status": "Accepted",
+              "code": 202,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"jobId\": \"3\",\n  \"blueprintId\": \"9b5f1c4d-3e6a-4f7b-0a8d-1c2f3b4c5d6e\"\n}"
+            }
+          ]
+        },
+
+        {
+          "name": "Get Blueprint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/v1/playlists/{{blueprint_id}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3001",
+              "path": ["api", "v1", "playlists", "{{blueprint_id}}"]
+            },
+            "description": "Fetch the generated playlist from Redis. Returns 404 if the job hasn't finished yet (wait and retry) or if the blueprint has expired (24h TTL)."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"id\": \"7f3d9a2b-1c4e-4f5a-8d6b-9e0f1a2b3c4d\",\n  \"generationType\": \"seed\",\n  \"totalDurationMs\": 3756000,\n  \"tracks\": [\n    {\n      \"id\": \"a1b2c3d4e5f6\",\n      \"title\": \"Blinding Lights\",\n      \"artist\": \"The Weeknd\",\n      \"durationMs\": 200040,\n      \"tags\": [\"pop\", \"synthwave\", \"energetic\", \"upbeat\"],\n      \"baseSimilarity\": 0.95,\n      \"popularity\": 0.92,\n      \"energy\": 0.73,\n      \"tempo\": 0.71\n    },\n    {\n      \"id\": \"b2c3d4e5f6a7\",\n      \"title\": \"Starboy\",\n      \"artist\": \"The Weeknd\",\n      \"durationMs\": 230453,\n      \"tags\": [\"pop\", \"r&b\", \"dark\"],\n      \"baseSimilarity\": 0.87,\n      \"popularity\": 0.89,\n      \"energy\": 0.65,\n      \"tempo\": 0.62\n    },\n    {\n      \"id\": \"c3d4e5f6a7b8\",\n      \"title\": \"Levitating\",\n      \"artist\": \"Dua Lipa\",\n      \"durationMs\": 203064,\n      \"tags\": [\"pop\", \"dance pop\", \"upbeat\"],\n      \"baseSimilarity\": 0.71,\n      \"popularity\": 0.88,\n      \"energy\": 0.74,\n      \"tempo\": 0.73\n    }\n  ],\n  \"backupTracks\": [\n    {\n      \"id\": \"d4e5f6a7b8c9\",\n      \"title\": \"Save Your Tears\",\n      \"artist\": \"The Weeknd\",\n      \"durationMs\": 215626,\n      \"tags\": [\"pop\", \"synthpop\"],\n      \"baseSimilarity\": 0.62,\n      \"popularity\": 0.85,\n      \"energy\": 0.60,\n      \"tempo\": 0.58\n    }\n  ]\n}"
+            },
+            {
+              "name": "404 Not Found / Not Ready Yet",
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"error\": \"Blueprint not found or expired\"\n}"
+            }
+          ]
+        },
+
+        {
+          "name": "Get History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/v1/playlists/history",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3001",
+              "path": ["api", "v1", "playlists", "history"]
+            },
+            "description": "Returns the 50 most recent playlist records. Includes platformPlaylistUrl once exported."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"playlists\": [\n    {\n      \"id\": \"7f3d9a2b-1c4e-4f5a-8d6b-9e0f1a2b3c4d\",\n      \"platform\": \"spotify\",\n      \"generationType\": \"seed\",\n      \"seedTrackTitle\": \"Blinding Lights\",\n      \"seedTrackArtist\": \"The Weeknd\",\n      \"promptSummary\": null,\n      \"durationMinutes\": 62,\n      \"trackCount\": 18,\n      \"platformPlaylistUrl\": \"https://open.spotify.com/playlist/3cEYpjA9oz9GiPHfkKPklL\",\n      \"createdAt\": \"2025-05-14T12:00:00.000Z\"\n    },\n    {\n      \"id\": \"8a4e0b3c-2d5f-4e6a-9f7c-0b1e2a3b4c5d\",\n      \"platform\": \"spotify\",\n      \"generationType\": \"prompt\",\n      \"seedTrackTitle\": null,\n      \"seedTrackArtist\": null,\n      \"promptSummary\": \"late night coding session, chill and fo\",\n      \"durationMinutes\": 61,\n      \"trackCount\": 17,\n      \"platformPlaylistUrl\": null,\n      \"createdAt\": \"2025-05-14T11:30:00.000Z\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+
+        {
+          "name": "Export to Spotify",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"platform\": \"spotify\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "http://localhost:3001/api/v1/playlists/{{blueprint_id}}/export",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3001",
+              "path": ["api", "v1", "playlists", "{{blueprint_id}}", "export"]
+            },
+            "description": "Resolves each track to a real Spotify ID, creates a private playlist, and adds all matched tracks. `failedTracks` > 0 is normal."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"platformPlaylistId\": \"3cEYpjA9oz9GiPHfkKPklL\",\n  \"platformPlaylistUrl\": \"https://open.spotify.com/playlist/3cEYpjA9oz9GiPHfkKPklL\",\n  \"trackCount\": 17,\n  \"failedTracks\": 1\n}"
+            },
+            {
+              "name": "404 Blueprint Not Found / Expired",
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"error\": \"Playlist not found or expired. Please generate a new one.\"\n}"
+            },
+            {
+              "name": "422 No Tracks Resolved",
+              "status": "Unprocessable Entity",
+              "code": 422,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"error\": \"No tracks could be matched on this platform. Try a different platform.\"\n}"
+            },
+            {
+              "name": "501 Platform Not Implemented",
+              "status": "Not Implemented",
+              "code": 501,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"error\": \"deezer export not yet implemented\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "name": "Billing",
+      "item": [
+        {
+          "name": "Get Billing Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/v1/billing/status",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3001",
+              "path": ["api", "v1", "billing", "status"]
+            },
+            "description": "Returns plan, pricing for the user's region (display only), and active subscription details."
+          },
+          "response": [
+            {
+              "name": "200 OK — Free",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"plan\": \"free\",\n  \"pricing\": { \"label\": \"$4.99/month\", \"currency\": \"usd\" },\n  \"stripe\": null,\n  \"crypto\": null\n}"
+            },
+            {
+              "name": "200 OK — Active Subscription",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"plan\": \"paid\",\n  \"pricing\": { \"label\": \"$4.99/month\", \"currency\": \"usd\" },\n  \"stripe\": { \"status\": \"active\", \"currentPeriodEnd\": \"2025-06-14T12:00:00.000Z\" },\n  \"crypto\": null\n}"
+            },
+            {
+              "name": "200 OK — Past Due",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"plan\": \"paid\",\n  \"pricing\": { \"label\": \"$4.99/month\", \"currency\": \"usd\" },\n  \"stripe\": { \"status\": \"past_due\", \"currentPeriodEnd\": \"2025-06-14T12:00:00.000Z\" },\n  \"crypto\": null\n}"
+            }
+          ]
+        },
+
+        {
+          "name": "Create Stripe Checkout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/v1/billing/stripe/checkout",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3001",
+              "path": ["api", "v1", "billing", "stripe", "checkout"]
+            },
+            "description": "Creates a Stripe Checkout session for the user's region. Open the returned URL in a browser to complete payment.\n\nRequires STRIPE_SECRET_KEY and STRIPE_PRICE_* env vars."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"url\": \"https://checkout.stripe.com/c/pay/cs_test_a1b2c3d4e5f6g7h8i9j0\"\n}"
+            },
+            {
+              "name": "500 Stripe Price Not Configured",
+              "status": "Internal Server Error",
+              "code": 500,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"error\": \"Stripe price not configured for region US — add STRIPE_PRICE_US to env\"\n}"
+            }
+          ]
+        },
+
+        {
+          "name": "Get Crypto Subscribe Info",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/v1/billing/crypto/subscribe",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3001",
+              "path": ["api", "v1", "billing", "crypto", "subscribe"]
+            },
+            "description": "Returns contract address, network, and monthly USDC amount for the frontend wallet approval flow. v2 feature — contract not yet deployed."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"contractAddress\": \"\",\n  \"network\": \"base\",\n  \"monthlyAmountUsdc\": 4.99\n}"
+            }
+          ]
+        },
+
+        {
+          "name": "Stripe Webhook — Stripe CLI only",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "stripe-signature", "value": "t=...,v1=...", "description": "Auto-generated by Stripe CLI — do not send manually" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "http://localhost:3001/api/v1/billing/stripe/webhook",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3001",
+              "path": ["api", "v1", "billing", "stripe", "webhook"]
+            },
+            "description": "Do not send from Postman — signature check will reject it.\n\nTest with Stripe CLI:\n  stripe listen --forward-to localhost:3001/api/v1/billing/stripe/webhook\n  stripe trigger checkout.session.completed\n\nHandled events: checkout.session.completed · customer.subscription.updated · customer.subscription.deleted · invoice.payment_succeeded · invoice.payment_failed"
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"received\": true\n}"
+            },
+            {
+              "name": "400 Invalid Signature",
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"error\": \"Invalid Stripe webhook signature\"\n}"
+            }
+          ]
+        },
+
+        {
+          "name": "Crypto Webhook — keeper only",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"walletAddress\": \"0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045\",\n  \"contractAddress\": \"0x0000000000000000000000000000000000000000\",\n  \"network\": \"base\",\n  \"event\": \"charged\",\n  \"signature\": \"<hmac-sha256-of-payload-excluding-this-field>\",\n  \"chargedAt\": \"2025-05-14T12:00:00.000Z\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "http://localhost:3001/api/v1/billing/crypto/webhook",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3001",
+              "path": ["api", "v1", "billing", "crypto", "webhook"]
+            },
+            "description": "Called by the Gelato keeper. Signature is HMAC-SHA256 of the payload body (excluding the `signature` field itself), keyed with CRYPTO_WEBHOOK_SECRET.\n\nevent options: charged | expired"
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"received\": true\n}"
+            },
+            {
+              "name": "400 Invalid Signature",
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"error\": \"Invalid crypto webhook signature\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "name": "Chat",
+      "item": [
+        {
+          "name": "Chat — New Conversation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.sessionId) {",
+                  "    pm.collectionVariables.set('chat_session_id', res.sessionId);",
+                  "    console.log('sessionId saved: ' + res.sessionId);",
+                  "}",
+                  "if (res.blueprintId) {",
+                  "    pm.collectionVariables.set('blueprint_id', res.blueprintId);",
+                  "    console.log('Generation triggered! blueprintId: ' + res.blueprintId);",
+                  "} else {",
+                  "    console.log('Mistral: ' + res.message);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"I want something for a late night coding session, chill and focused\",\n  \"platform\": \"spotify\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "http://localhost:3001/api/v1/chat",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3001",
+              "path": ["api", "v1", "chat"]
+            },
+            "description": "Starts a new conversation. Omit `sessionId` to begin fresh.\n\nMistral classifies the message (off-topic → instant refusal, no HF call), then responds conversationally. If it has enough intent to generate, it triggers a playlist job and returns `blueprintId` + `jobId`.\n\n`sessionId` is auto-saved for follow-up messages."
+          },
+          "response": [
+            {
+              "name": "200 — Mistral asks a clarifying question",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"sessionId\": \"d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a\",\n  \"message\": \"I love that vibe! How long would you like the playlist to be — around 60 minutes?\"\n}"
+            },
+            {
+              "name": "200 — Mistral generates immediately",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"sessionId\": \"d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a\",\n  \"message\": \"Here's a 60-minute late night coding playlist with chill, focused electronic and ambient tracks. Generating now...\",\n  \"blueprintId\": \"9b5f1c4d-3e6a-4f7b-0a8d-1c2f3b4c5d6e\",\n  \"jobId\": \"4\"\n}"
+            },
+            {
+              "name": "200 — Off-topic message refused",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"sessionId\": \"d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a\",\n  \"message\": \"I can only help with playlist creation.\"\n}"
+            }
+          ]
+        },
+
+        {
+          "name": "Chat — Follow-up (Refine)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.blueprintId) {",
+                  "    pm.collectionVariables.set('blueprint_id', res.blueprintId);",
+                  "    console.log('Refined playlist triggered! blueprintId: ' + res.blueprintId);",
+                  "} else {",
+                  "    console.log('Mistral: ' + res.message);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Make it more energetic, like 90 minutes\",\n  \"platform\": \"spotify\",\n  \"sessionId\": \"{{chat_session_id}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "http://localhost:3001/api/v1/chat",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3001",
+              "path": ["api", "v1", "chat"]
+            },
+            "description": "Continues an existing conversation. Mistral sees the full history and refines the intent. Pass `{{chat_session_id}}` which was auto-saved from the first message.\n\nIf the refinement is clear enough, a new playlist is generated and the old blueprintId is replaced."
+          },
+          "response": [
+            {
+              "name": "200 — Refined and regenerated",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"sessionId\": \"d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a\",\n  \"message\": \"Got it — bumping the energy up and extending to 90 minutes. Regenerating now.\",\n  \"blueprintId\": \"a1b2c3d4-e5f6-7a8b-9c0d-e1f2a3b4c5d6\",\n  \"jobId\": \"5\"\n}"
+            }
+          ]
+        }
+      ]
+    }
+
+  ]
+}

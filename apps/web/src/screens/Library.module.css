@@ -1,0 +1,108 @@
+.page {
+  padding: var(--space-4);
+  padding-top: calc(var(--space-4) + env(safe-area-inset-top));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.title {
+  font-family: 'Clash Display', sans-serif;
+  font-weight: 700;
+  font-size: var(--text-2xl);
+  color: var(--color-text-primary);
+  letter-spacing: -0.03em;
+}
+
+.filters {
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.filterPill {
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-full);
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  background: var(--color-surface-raised);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.filterActive {
+  background: var(--color-accent);
+  color: var(--color-text-primary);
+  border-color: var(--color-accent);
+}
+
+/* ─── Empty state ─────────────────────────────────────────────────────────── */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  padding: var(--space-16) var(--space-6);
+  text-align: center;
+  flex: 1;
+}
+
+.emptyTitle {
+  font-family: 'Clash Display', sans-serif;
+  font-weight: 600;
+  font-size: var(--text-xl);
+  color: var(--color-text-primary);
+  letter-spacing: -0.02em;
+}
+
+.emptyBody {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+}
+
+/* ─── Playlist list ───────────────────────────────────────────────────────── */
+.list { display: flex; flex-direction: column; gap: var(--space-3); }
+
+.card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: background var(--duration-instant) var(--ease-standard);
+}
+
+.card:active { background: var(--color-surface-raised); }
+
+.cardIcon { flex-shrink: 0; }
+
+.cardContent { flex: 1; min-width: 0; }
+
+.cardTitle {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cardMeta {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin-top: var(--space-1);
+}
