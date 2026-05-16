@@ -19,7 +19,7 @@ console.log('[startup] CORS origin:', ALLOWED_ORIGIN)
 app.register(cors, {
   origin: (origin, cb) => {
     if (!origin || origin === ALLOWED_ORIGIN || origin.startsWith('http://localhost')) {
-      cb(null, true)
+      cb(null, origin || ALLOWED_ORIGIN)
     } else {
       console.log('[CORS] blocked:', origin)
       cb(Object.assign(new Error('CORS'), { statusCode: 403 }), false)
