@@ -13,18 +13,8 @@ import { createSocketServer } from './shared/utils/socket.js'
 
 const app = Fastify({ logger: true })
 
-const ALLOWED_ORIGIN = (process.env.WEB_BASE_URL ?? 'http://localhost:3000').trim()
-console.log('[startup] CORS origin:', ALLOWED_ORIGIN)
-
 app.register(cors, {
-  origin: (origin, cb) => {
-    if (!origin || origin === ALLOWED_ORIGIN || origin.startsWith('http://localhost')) {
-      cb(null, origin || ALLOWED_ORIGIN)
-    } else {
-      console.log('[CORS] blocked:', origin)
-      cb(Object.assign(new Error('CORS'), { statusCode: 403 }), false)
-    }
-  },
+  origin: (process.env.WEB_BASE_URL ?? 'http://localhost:3000').trim(),
   credentials: true,
 })
 app.register(jwt, { secret: process.env.JWT_SECRET ?? 'dev-secret-change-in-production' })
