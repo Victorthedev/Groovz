@@ -1,6 +1,6 @@
 [build]
 builder = "nixpacks"
-buildCommand = "npm install -g pnpm@9 && pnpm install --frozen-lockfile --prod false && pnpm --filter @groovz/api exec prisma generate && pnpm --filter @groovz/api build"
+buildCommand = "npm install -g pnpm@9 && pnpm install --frozen-lockfile && pnpm --filter @groovz/api exec prisma generate && pnpm --filter @groovz/api build"
 
 [deploy]
 startCommand = "pnpm --filter @groovz/api exec prisma migrate deploy && node apps/api/dist/app.js"
