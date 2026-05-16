@@ -187,6 +187,14 @@ export default function Profile() {
       )}
 
       <section className={styles.section}>
+        <p className={styles.sectionTitle}>Your taste</p>
+        <button className={styles.tasteRow} onClick={() => navigate('/taste-card')}>
+          <span className={styles.tasteRowLabel}>Share Your Taste</span>
+          <span className={styles.tasteRowChevron}>›</span>
+        </button>
+      </section>
+
+      <section className={styles.section}>
         <Button variant="ghost" fullWidth onClick={handleLogout}>Log out</Button>
       </section>
     </div>

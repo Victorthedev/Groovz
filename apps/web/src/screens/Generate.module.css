@@ -490,3 +490,107 @@
   color: var(--color-text-primary);
   margin-top: var(--space-1);
 }
+
+/* ─── Context cards ──────────────────────────────────────────────────────────── */
+.contextSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.contextToggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-1);
+  height: 44px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  width: 100%;
+}
+
+.contextToggleLabel {
+  color: var(--color-text-secondary);
+}
+
+.contextCards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}
+
+.contextCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color var(--duration-fast) var(--ease-standard);
+}
+
+.contextCard:active {
+  background: var(--color-surface-raised);
+}
+
+.contextCardActive {
+  border-color: var(--color-accent);
+  background: var(--color-surface-raised);
+}
+
+.contextCardLabel {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.contextCardDesc {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+/* ─── Mode toggle (Standard / Deep Cuts) ────────────────────────────────────── */
+.modeToggle {
+  display: flex;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-1);
+  gap: var(--space-1);
+}
+
+.modeBtn {
+  flex: 1;
+  padding: 10px var(--space-3);
+  border-radius: calc(var(--radius-md) - 2px);
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.modeBtnActive {
+  background: var(--color-accent);
+  color: var(--color-text-primary);
+}
+
+.deepCutsHint {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  text-align: center;
+}

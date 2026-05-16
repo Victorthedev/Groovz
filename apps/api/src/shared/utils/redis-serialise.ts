@@ -27,6 +27,7 @@ interface SerialisedSession {
   promptEmbedding?: number[]
   embeddingFailed: boolean
   popularTrackCount: number
+  deepCuts: boolean
 }
 
 interface SerialisedPool {

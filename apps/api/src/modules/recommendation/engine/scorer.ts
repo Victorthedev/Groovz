@@ -28,9 +28,9 @@ export function scoreTrack(
   const pArtist = session.softPenaltiesRelaxed ? 1.0 : getArtistPenalty(track, session)
   const pTag    = session.softPenaltiesRelaxed ? 1.0 : getTagDiversityPenalty(track, session)
 
-  // Dynamic weights shift with temperature (§5.3)
-  const wPop   = lerp(0.4, 0.1, T)
-  const wNovel = lerp(0.1, 0.4, T)
+  // Dynamic weights — Deep Cuts inverts the popularity/novelty balance
+  const wPop   = session.deepCuts ? 0.05 : lerp(0.4, 0.1, T)
+  const wNovel = session.deepCuts ? 0.45 : lerp(0.1, 0.4, T)
   const wSim   = 0.5
   const wEnergy = 0.15
   const wTempo  = 0.15

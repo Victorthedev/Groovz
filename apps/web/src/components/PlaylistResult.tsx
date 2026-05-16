@@ -17,6 +17,8 @@ interface Blueprint {
   totalDurationMs: number
   generationType: string
   intent?: { mood?: string[]; energy?: string }
+  narrative?: string | null
+  deepCuts?: boolean
 }
 
 interface ExportResult {
@@ -25,14 +27,23 @@ interface ExportResult {
   failedTracks: number
 }
 
+interface BlendParticipant {
+  id: string
+  displayName: string
+  isAnonymous: boolean
+}
+
 interface Props {
   open: boolean
   blueprintId: string | null
   platform: string
   onClose: () => void
+  isBlend?: boolean
+  isHost?: boolean
+  blendParticipants?: BlendParticipant[]
 }
 
-export default function PlaylistResult({ open, blueprintId, platform, onClose }: Props) {
+export default function PlaylistResult({ open, blueprintId, platform, onClose, isBlend, isHost, blendParticipants }: Props) {
   const [blueprint, setBlueprint]     = useState<Blueprint | null>(null)
   const [loading, setLoading]         = useState(false)
   const [exporting, setExporting]     = useState(false)
@@ -99,7 +110,11 @@ export default function PlaylistResult({ open, blueprintId, platform, onClose }:
                 </h2>
                 <p className={styles.meta}>
                   {totalMin}m · {blueprint.tracks.length} tracks · {platform}
+                  {blueprint.deepCuts && <span className={styles.deepCutsBadge}>Deep Cuts</span>}
                 </p>
+                {blueprint.narrative && (
+                  <p className={styles.narrative}>{blueprint.narrative}</p>
+                )}
               </div>
             </div>
 

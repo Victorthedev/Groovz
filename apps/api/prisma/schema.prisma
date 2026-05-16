@@ -34,6 +34,7 @@ enum GenerationType {
   prompt
   hybrid
   weekly_ml
+  blend
 }
 
 enum SignalType {
@@ -41,6 +42,7 @@ enum SignalType {
   playlist_regenerated
   seed_used
   prompt_used
+  context_used
   spotify_top_track
   spotify_recent_play
   lastfm_scrobble
@@ -95,12 +97,15 @@ model ConnectedPlatform {
 }
 
 model UserPreferences {
-  userId          String  @id
-  defaultPlatform String?
-  defaultDuration Int     @default(60)   // minutes
-  diversityBias   Float   @default(0.5)  // 0.0–1.0, paid tier tunable
-  whatsappLinked  Boolean @default(false)
-  whatsappPhone   String?
+  userId                    String   @id
+  defaultPlatform           String?
+  defaultDuration           Int      @default(60)
+  diversityBias             Float    @default(0.5)
+  whatsappLinked            Boolean  @default(false)
+  whatsappPhone             String?
+  signalCollectionConsented Boolean  @default(false)
+  spotifySignalEnabled      Boolean  @default(true)
+  seenFeatureIntros         String[] @default([])
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -109,7 +114,7 @@ model UserCapabilities {
   userId                      String   @id
   plan                        Plan     @default(free)
   maxPlaylistDurationMinutes  Int      @default(120)
-  maxPlaylistsPerMonth        Int      @default(10)
+  maxPlaylistsPerMonth        Int      @default(999999)
   playlistsGeneratedThisMonth Int      @default(0)
   canUseRouteFeature          Boolean  @default(false)
   canUseWhatsapp              Boolean  @default(false)
@@ -128,6 +133,7 @@ model PlaylistRecord {
   promptSummary       String?
   durationMinutes     Int
   trackCount          Int
+  narrative           String?
   platformPlaylistId  String?
   platformPlaylistUrl String?
   createdAt           DateTime       @default(now())

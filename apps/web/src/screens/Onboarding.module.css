@@ -1,0 +1,245 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  background: var(--color-bg);
+  padding: env(safe-area-inset-top) var(--space-6) env(safe-area-inset-bottom);
+  overflow: hidden;
+}
+
+/* ─── Header ─────────────────────────────────────────────────────────────────── */
+.header {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: var(--space-4);
+  min-height: 44px;
+  align-items: center;
+}
+
+.skipBtn {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-text-muted);
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+/* ─── Step container ─────────────────────────────────────────────────────────── */
+.step {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: var(--space-8) 0;
+  gap: var(--space-6);
+}
+
+/* ─── Step 1 — Welcome ───────────────────────────────────────────────────────── */
+.welcomeVisualiser {
+  display: flex;
+  justify-content: center;
+  margin-bottom: var(--space-4);
+}
+
+.welcomeHeading {
+  font-family: 'Clash Display', sans-serif;
+  font-weight: 700;
+  font-size: var(--text-3xl);
+  color: var(--color-text-primary);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  text-align: center;
+}
+
+.welcomeBody {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  text-align: center;
+  line-height: 1.6;
+}
+
+/* ─── Step 2 — Platforms ─────────────────────────────────────────────────────── */
+.stepHeading {
+  font-family: 'Clash Display', sans-serif;
+  font-weight: 700;
+  font-size: var(--text-2xl);
+  color: var(--color-text-primary);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.stepBody {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
+
+.platformList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.platformCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: border-color var(--duration-fast) var(--ease-standard);
+}
+
+.platformCardConnected {
+  border-color: var(--color-accent);
+}
+
+.platformCardConnected:active,
+.platformCard:active {
+  background: var(--color-surface-raised);
+}
+
+.platformName {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.platformStatus {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-accent);
+}
+
+.platformStatusDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-accent);
+}
+
+.platformStatusRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* ─── Step 3 — WhatsApp ──────────────────────────────────────────────────────── */
+.whatsappIcon {
+  width: 56px;
+  height: 56px;
+  background: var(--color-surface-raised);
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border);
+}
+
+/* ─── Step 4 — Consent ───────────────────────────────────────────────────────── */
+.consentBody {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  line-height: 1.7;
+}
+
+.consentToggleRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.consentToggleText {
+  flex: 1;
+}
+
+.consentToggleLabel {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: var(--color-text-primary);
+  display: block;
+  margin-bottom: var(--space-1);
+}
+
+.consentToggleHint {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+/* ─── Toggle switch ──────────────────────────────────────────────────────────── */
+.toggle {
+  width: 44px;
+  height: 26px;
+  border-radius: var(--radius-full);
+  background: var(--color-border);
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--duration-fast) var(--ease-standard);
+  border: none;
+}
+
+.toggleOn {
+  background: var(--color-accent);
+}
+
+.toggleThumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--color-text-primary);
+  transition: transform var(--duration-fast) var(--ease-spring);
+}
+
+.toggleThumbOn {
+  transform: translateX(18px);
+}
+
+/* ─── Progress dots ──────────────────────────────────────────────────────────── */
+.footer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding-bottom: var(--space-6);
+}
+
+.dots {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-border);
+  transition: background var(--duration-fast) var(--ease-standard);
+}
+
+.dotActive {
+  background: var(--color-accent);
+  width: 20px;
+  border-radius: var(--radius-full);
+}

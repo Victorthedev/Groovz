@@ -40,11 +40,13 @@ export default function Auth() {
       const res = await api.post<{ accessToken: string; refreshToken: string }>(path, body)
       setTokens(res.accessToken, res.refreshToken)
 
-      // Fetch the user profile and store it
-      const me = await api.get<{ id: string; email: string }>('/api/v1/auth/me')
+      const [me, prefs] = await Promise.all([
+        api.get<{ id: string; email: string }>('/api/v1/auth/me'),
+        api.get<{ signalCollectionConsented: boolean }>('/api/v1/user/preferences'),
+      ])
       setUser(me)
 
-      navigate('/', { replace: true })
+      navigate(prefs.signalCollectionConsented ? '/' : '/onboarding', { replace: true })
     } catch (err) {
       toast((err as Error).message, 'error')
     } finally {

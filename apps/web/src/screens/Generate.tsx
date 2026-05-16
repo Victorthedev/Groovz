@@ -1,13 +1,10 @@
-import { useState, useEffect, useCallback, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect, useCallback } from 'react'
 import { api } from '../api/client'
 import { useGenerationStore } from '../store/generation'
-import { useAuthStore } from '../store/auth'
 import { useToast } from '../components/ui/Toast'
 import { FrequencyVisualiserCanvas, FrequencyVisualiserBars } from '../components/FrequencyVisualiser'
 import Button from '../components/ui/Button'
-import { Input, Textarea } from '../components/ui/Input'
-import BottomSheet from '../components/ui/BottomSheet'
+import { Textarea } from '../components/ui/Input'
 import Badge from '../components/ui/Badge'
 import PlaylistResult from '../components/PlaylistResult'
 import styles from './Generate.module.css'
@@ -16,6 +13,17 @@ type GenType  = 'seed' | 'prompt' | 'hybrid'
 type Platform = 'spotify' | 'deezer' | 'audiomack' | 'youtube_music'
 type Energy   = 'low' | 'medium' | 'high'
 type Tempo    = 'slow' | 'medium' | 'fast'
+
+const CONTEXT_CARDS = [
+  { id: 'pre_match',     label: 'Pre-match warmup',     description: 'Build to peak intensity' },
+  { id: 'cant_sleep',    label: "Can't sleep",           description: 'Wind down slowly'        },
+  { id: 'cooking',       label: 'Cooking for someone',   description: 'Warm and easy'            },
+  { id: 'flight',        label: 'Flight or travel',      description: 'Atmospheric and steady'   },
+  { id: 'running',       label: 'Running',               description: 'Consistent and high energy' },
+  { id: 'getting_ready', label: 'Getting ready',         description: 'Build the energy up'     },
+  { id: 'deep_focus',    label: 'Deep focus',            description: 'Low and uninterrupted'   },
+  { id: 'post_workout',  label: 'Post-workout wind down', description: 'Come back to earth'     },
+]
 
 interface LibraryTrack {
   displayId: string
@@ -54,8 +62,11 @@ export default function Generate() {
   const [platform, setPlatform]     = useState<Platform>('spotify')
   const [duration, setDuration]     = useState(60)
   const [prompt, setPrompt]         = useState('')
-  const [energy, setEnergy]         = useState<Energy | ''>('')
-  const [tempo, setTempo]           = useState<Tempo | ''>('')
+  const [energy, setEnergy]           = useState<Energy | ''>('')
+  const [tempo, setTempo]             = useState<Tempo | ''>('')
+  const [contextCard, setContextCard] = useState<string | null>(null)
+  const [contextOpen, setContextOpen] = useState(false)
+  const [deepCuts, setDeepCuts]       = useState(false)
   const [seedTrack, setSeedTrack]   = useState<LibraryTrack | null>(null)
   const [library, setLibrary]       = useState<LibraryTrack[]>([])
   const [playlists, setPlaylists]   = useState<LibraryPlaylist[]>([])
@@ -69,7 +80,6 @@ export default function Generate() {
 
   const generation = useGenerationStore()
   const toast      = useToast()
-  const navigate   = useNavigate()
 
   // Cycle prompt text
   useEffect(() => {
@@ -127,6 +137,9 @@ export default function Generate() {
     setPrompt('')
     setEnergy('')
     setTempo('')
+    setContextCard(null)
+    setContextOpen(false)
+    setDeepCuts(false)
     setTakeover(true)
   }
 
@@ -141,6 +154,8 @@ export default function Generate() {
       if (prompt.trim()) body['prompt']         = prompt.trim()
       if (energy)        (body['intent'] as Record<string, unknown>)['energy'] = energy
       if (tempo)         (body['intent'] as Record<string, unknown>)['tempo']  = tempo
+      if (contextCard)   body['contextCardId']  = contextCard
+      if (deepCuts)      body['deepCuts']       = true
 
       const res = await api.post<{ jobId: string; blueprintId: string }>('/api/v1/playlists/generate', body)
       generation.start(res.jobId, res.blueprintId, platform)
@@ -262,6 +277,60 @@ export default function Generate() {
                       </button>
                     ))}
                   </div>
+                  {/* Deep Cuts toggle */}
+                  <div className={styles.modeToggle}>
+                    <button
+                      className={[styles.modeBtn, !deepCuts ? styles.modeBtnActive : ''].join(' ')}
+                      onClick={() => setDeepCuts(false)}
+                      type="button"
+                    >Standard</button>
+                    <button
+                      className={[styles.modeBtn, deepCuts ? styles.modeBtnActive : ''].join(' ')}
+                      onClick={() => setDeepCuts(true)}
+                      type="button"
+                    >Deep Cuts</button>
+                  </div>
+                  {deepCuts && (
+                    <p className={styles.deepCutsHint}>
+                      Tracks you have never heard but will immediately connect with.
+                    </p>
+                  )}
+
+                  {/* Context cards */}
+                  <div className={styles.contextSection}>
+                    <button
+                      className={styles.contextToggle}
+                      onClick={() => setContextOpen(o => !o)}
+                      type="button"
+                    >
+                      <span className={styles.contextToggleLabel}>
+                        {contextCard
+                          ? CONTEXT_CARDS.find(c => c.id === contextCard)?.label
+                          : 'Add context'}
+                      </span>
+                      <ChevronDownIcon open={contextOpen} />
+                    </button>
+
+                    {contextOpen && (
+                      <div className={styles.contextCards}>
+                        {CONTEXT_CARDS.map(card => (
+                          <button
+                            key={card.id}
+                            className={[styles.contextCard, contextCard === card.id ? styles.contextCardActive : ''].join(' ')}
+                            onClick={() => {
+                              setContextCard(contextCard === card.id ? null : card.id)
+                              setContextOpen(false)
+                            }}
+                            type="button"
+                          >
+                            <span className={styles.contextCardLabel}>{card.label}</span>
+                            <span className={styles.contextCardDesc}>{card.description}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                   <Button fullWidth onClick={() => { setStep('inputs'); if (genType !== 'prompt') fetchLibrary() }}>
                     Next
                   </Button>
@@ -471,6 +540,17 @@ interface HistoryItem {
   durationMinutes: number
   trackCount: number
   platformPlaylistUrl: string | null
+}
+
+function ChevronDownIcon({ open }: { open: boolean }) {
+  return (
+    <svg
+      width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"
+      style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 150ms' }}
+    >
+      <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
 }
 
 function BackIcon() {

@@ -3,7 +3,7 @@ import type { CanonicalTrack, Intent } from './index.js'
 export interface PlaylistSession {
   sessionId: string
   userId: string
-  generationType: 'seed' | 'prompt' | 'hybrid' | 'weekly_ml'
+  generationType: 'seed' | 'prompt' | 'hybrid' | 'weekly_ml' | 'blend'
   targetPlatform: string
 
   // Duration (§5.6)
@@ -25,6 +25,7 @@ export interface PlaylistSession {
   temperature: number
   iteration: number
   softPenaltiesRelaxed: boolean  // §5.7 candidate exhaustion step 1
+  deepCuts: boolean               // uses 3-hop expansion, inverted popularity weights
 
   // Intent
   intent?: Intent

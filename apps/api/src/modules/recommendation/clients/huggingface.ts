@@ -206,3 +206,69 @@ function extractTagsFromPrompt(prompt: string): string[] {
 
   return found
 }
+
+// ─── Playlist narrative generation ───────────────────────────────────────────
+
+export async function generateNarrative(tracks: Array<{
+  title: string
+  artist: string
+  tags: string[]
+  energy?: number | null
+}>): Promise<string> {
+  const key = process.env.GROQ_API_KEY
+  if (!key) throw new Error('GROQ_API_KEY not configured')
+
+  const trackSummary = tracks
+    .slice(0, 8)
+    .map(t => `${t.artist} - ${t.title}`)
+    .join(', ')
+
+  // Top 5 tags by frequency across all tracks
+  const tagFreq = new Map<string, number>()
+  for (const t of tracks) {
+    for (const tag of t.tags.slice(0, 3)) {
+      tagFreq.set(tag, (tagFreq.get(tag) ?? 0) + 1)
+    }
+  }
+  const topTags = [...tagFreq.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([tag]) => tag)
+    .join(', ')
+
+  // Derive energy arc from track order
+  const energies = tracks.map(t => t.energy ?? 0.5)
+  const third = Math.floor(energies.length / 3) || 1
+  const e1 = energies.slice(0, third).reduce((s, v) => s + v, 0) / third
+  const e2 = energies.slice(third, third * 2).reduce((s, v) => s + v, 0) / third
+  const e3 = energies.slice(third * 2).reduce((s, v) => s + v, 0) / (energies.length - third * 2 || 1)
+  const energyArc = e1 < e2 && e2 > e3 ? 'builds to a peak then winds down'
+    : e1 < e3 ? 'gradually rising'
+    : e1 > e3 ? 'gradually falling'
+    : 'consistent throughout'
+
+  const prompt = `You are a music critic writing a brief liner note for a playlist.
+The playlist contains these tracks in order: ${trackSummary}
+The dominant tags are: ${topTags}
+The energy arc is: ${energyArc}
+Write 2 to 3 sentences describing what this playlist does sonically and emotionally.
+Be specific and reference the actual sonic character. Do not be generic.
+Never use the words journey, vibe, or experience.
+Write in plain prose with no lists or headers.`
+
+  const res = await fetch(GROQ_API_URL, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: GROQ_MODEL,
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 150,
+      temperature: 0.75,
+    }),
+  })
+
+  if (!res.ok) throw new Error(`Groq narrative ${res.status}`)
+
+  const data = await res.json() as { choices: Array<{ message: { content: string } }> }
+  return data.choices[0]?.message.content?.trim() ?? ''
+}

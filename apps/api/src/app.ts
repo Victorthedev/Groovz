@@ -7,7 +7,9 @@ import recommendationPlugin from './modules/recommendation/index.js'
 import billingPlugin from './modules/billing/index.js'
 import exportPlugin from './modules/export/index.js'
 import chatPlugin from './modules/chat/index.js'
+import blendPlugin from './modules/blend/index.js'
 import { startPlaylistGenerationWorker } from './jobs/playlist-generation.job.js'
+import { startSpotifySignalJobs } from './jobs/spotify-signals.job.js'
 import { createSocketServer } from './shared/utils/socket.js'
 
 const app = Fastify({ logger: true })
@@ -37,6 +39,7 @@ app.register(async (fastify) => {
   fastify.register(billingPlugin)
   fastify.register(exportPlugin)
   fastify.register(chatPlugin)
+  fastify.register(blendPlugin)
 }, { prefix: '/api/v1' })
 
 app.get('/health', async () => ({ status: 'ok' }))
@@ -51,6 +54,7 @@ const start = async () => {
     )
 
     startPlaylistGenerationWorker()
+    startSpotifySignalJobs()
 
     await app.listen({ port: parseInt(process.env.PORT ?? '3001'), host: '0.0.0.0' })
   } catch (err) {
