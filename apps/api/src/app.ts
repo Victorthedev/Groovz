@@ -8,6 +8,7 @@ import billingPlugin from './modules/billing/index.js'
 import exportPlugin from './modules/export/index.js'
 import chatPlugin from './modules/chat/index.js'
 import blendPlugin from './modules/blend/index.js'
+import adminPlugin from './modules/admin/index.js'
 import { startPlaylistGenerationWorker } from './jobs/playlist-generation.job.js'
 import { startSpotifySignalJobs } from './jobs/spotify-signals.job.js'
 import { createSocketServer } from './shared/utils/socket.js'
@@ -40,6 +41,7 @@ app.register(async (fastify) => {
   fastify.register(exportPlugin)
   fastify.register(chatPlugin)
   fastify.register(blendPlugin)
+  fastify.register(adminPlugin)
 }, { prefix: '/api/v1' })
 
 app.get('/health', async () => ({ status: 'ok' }))

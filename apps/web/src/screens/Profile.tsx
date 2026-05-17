@@ -158,30 +158,25 @@ export default function Profile() {
       </section>
 
       {/* Billing */}
-      {billing?.plan === 'free' && billing.pricing && (
+      {billing?.plan === 'free' && (
         <section className={styles.section}>
           <p className={styles.sectionTitle}>Upgrade</p>
           <div className={styles.upgradeCard}>
-            <div>
-              <p className={styles.upgradeTitle}>Groovz Pro</p>
+            <p className={styles.upgradeTitle}>Groovz Pro</p>
+            {billing.pricing && (
               <p className={styles.upgradePrice}>{billing.pricing.label}</p>
-              <ul className={styles.upgradePerks}>
-                <li>Unlimited playlists</li>
-                <li>Up to 4 hours per playlist</li>
-                <li>Multiple platforms simultaneously</li>
-                <li>Weekly personalised mix</li>
-              </ul>
-            </div>
-            <Button
-              fullWidth
-              onClick={() =>
-                api.post<{ url: string }>('/api/v1/billing/stripe/checkout')
-                  .then(r => window.location.href = r.url)
-                  .catch(e => toast((e as Error).message, 'error'))
-              }
-            >
-              Upgrade to Pro
-            </Button>
+            )}
+            <ul className={styles.upgradePerks}>
+              <li>Up to 4 hours per playlist</li>
+              <li>Multiple platforms simultaneously</li>
+              <li>WhatsApp bot — generate playlists from anywhere</li>
+              <li>Road Trip — routes and playlists designed together</li>
+              <li>Drive Chapters — sonic chapters per road segment</li>
+              <li>Weekly personalised mix that updates automatically</li>
+              <li>Moment Playlists — time-aware suggestions</li>
+              <li>Context Cards personalised to your listening history</li>
+            </ul>
+            <div className={styles.comingSoon}>Coming Soon</div>
           </div>
         </section>
       )}

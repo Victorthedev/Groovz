@@ -331,6 +331,15 @@ export default function Generate() {
                     )}
                   </div>
 
+                  <button
+                    className={styles.blendEntry}
+                    onClick={() => { setTakeover(false); window.location.href = '/blend/start' }}
+                    type="button"
+                  >
+                    <span className={styles.blendEntryLabel}>Start a Blend</span>
+                    <span className={styles.blendEntryHint}>Merge sounds with up to 3 others</span>
+                  </button>
+
                   <Button fullWidth onClick={() => { setStep('inputs'); if (genType !== 'prompt') fetchLibrary() }}>
                     Next
                   </Button>

@@ -594,3 +594,34 @@
   color: var(--color-text-muted);
   text-align: center;
 }
+
+/* ─── Blend entry ────────────────────────────────────────────────────────────── */
+.blendEntry {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+  width: 100%;
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color var(--duration-fast) var(--ease-standard);
+}
+
+.blendEntry:active { background: var(--color-surface-raised); }
+
+.blendEntryLabel {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+.blendEntryHint {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}

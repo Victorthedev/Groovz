@@ -12,6 +12,9 @@ import Auth           from './screens/Auth'
 import Onboarding     from './screens/Onboarding'
 import ConnectSuccess from './screens/ConnectSuccess'
 import TasteCard      from './screens/TasteCard'
+import BlendStart     from './screens/BlendStart'
+import BlendJoin      from './screens/BlendJoin'
+import Admin          from './screens/Admin'
 import AppShell       from './components/AppShell'
 import Generate       from './screens/Generate'
 import Library        from './screens/Library'
@@ -44,6 +47,16 @@ export default function App() {
 
           <Route path="/taste-card" element={
             accessToken ? <TasteCard /> : <Navigate to="/auth" replace />
+          } />
+
+          <Route path="/blend/start" element={
+            accessToken ? <BlendStart /> : <Navigate to="/auth" replace />
+          } />
+
+          <Route path="/blend/:sessionId" element={<BlendJoin />} />
+
+          <Route path="/admin" element={
+            accessToken ? <Admin /> : <Navigate to="/auth" replace />
           } />
 
           <Route path="/" element={

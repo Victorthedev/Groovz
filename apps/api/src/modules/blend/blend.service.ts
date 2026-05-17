@@ -89,7 +89,7 @@ export async function joinSession(
 
   // Join their socket to the blend room
   try {
-    await getIO().in(`user:${userId}`).socketsJoin(`blend:${sessionId}`)
+    getIO().in(`user:${userId}`).socketsJoin(`blend:${sessionId}`)
   } catch { /* socket may not be connected */ }
 
   // Emit join event to everyone in the room
@@ -219,6 +219,7 @@ export async function generateBlend(sessionId: string, hostUserId: string): Prom
         promptSummary: `Blend · ${participantInitials}`,
         durationMinutes: 60,
         trackCount: 0,
+        blendSessionId: sessionId,
       },
     })
     recordIds[p.userId!] = record.id
@@ -227,7 +228,7 @@ export async function generateBlend(sessionId: string, hostUserId: string): Prom
   // Use the host's record id as the blueprint id (shared blueprint)
   const blueprintId = recordIds[hostUserId] ?? randomUUID()
 
-  const job = await playlistGenerationQueue.add('generate', {
+  await playlistGenerationQueue.add('generate', {
     sessionId: genSession.sessionId,
     userId: hostUserId,
     playlistRecordId: blueprintId,
