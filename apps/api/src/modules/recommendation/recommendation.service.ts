@@ -295,8 +295,7 @@ export async function startWeeklyGeneration(userId: string): Promise<void> {
   if (stage < 1) return
 
   const platform = prefs?.defaultPlatform ?? 'spotify'
-  // 2.5 hours, capped at the user's plan limit
-  const targetMinutes = Math.min(150, caps.maxPlaylistDurationMinutes)
+  const targetMinutes = Math.min(150, caps?.maxPlaylistDurationMinutes ?? 150)
   const targetDurationMs = targetMinutes * 60_000
 
   const topTags   = Object.keys(tasteProfile.tagAffinities    as Record<string, number>).slice(0, 5)
