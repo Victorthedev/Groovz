@@ -23,6 +23,7 @@ import Profile        from './screens/Profile'
 import Chat           from './screens/Chat'
 import PrivacyPolicy  from './screens/PrivacyPolicy'
 import Terms          from './screens/Terms'
+import RoadTrip       from './screens/RoadTrip'
 
 export default function App() {
   const { isLoading, accessToken } = useAuthStore()
@@ -71,8 +72,11 @@ export default function App() {
             <Route path="chat"     element={<Chat />}     />
           </Route>
 
-          <Route path="/privacy" element={<PrivacyPolicy />} />
-          <Route path="/terms"   element={<Terms />} />
+          <Route path="/privacy"    element={<PrivacyPolicy />} />
+          <Route path="/terms"      element={<Terms />} />
+          <Route path="/road-trip"  element={
+            accessToken ? <RoadTrip /> : <Navigate to="/auth" replace />
+          } />
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

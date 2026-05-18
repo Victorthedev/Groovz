@@ -47,6 +47,11 @@ export async function createBlendSession(hostUserId: string, hostEmail: string):
 
   await redis.setex(sessionKey(session.id), BLEND_TTL, JSON.stringify(session))
 
+  // Host must be in the blend room to receive participant_joined events
+  try {
+    getIO().in(`user:${hostUserId}`).socketsJoin(`blend:${session.id}`)
+  } catch { /* socket may not be connected yet */ }
+
   // Auto-build host profile from their signals if above threshold
   await autoProfileIfReady(session.id, hostParticipantId, hostUserId)
 
@@ -115,8 +120,7 @@ export async function joinSessionAnonymous(sessionId: string): Promise<{ partici
   if (session.status !== 'waiting') throw Object.assign(new Error('Blend session is no longer accepting participants'), { statusCode: 409 })
   if (session.participants.length >= MAX_PARTICIPANTS) throw Object.assign(new Error('Blend session is full'), { statusCode: 409 })
 
-  const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ'
-  const displayName = letters[Math.floor(Math.random() * letters.length)]
+  const displayName = 'G'
 
   const participant: BlendParticipant = {
     id: randomUUID(),
@@ -156,11 +160,15 @@ export async function submitTasteProfile(
 
   await redis.setex(tasteKey(sessionId, participantId), remainingTtl(session), JSON.stringify(taste))
 
-  // Mark participant as profiled in session
+  // Mark participant as profiled and notify the host
   const p = session.participants.find(x => x.id === participantId)
   if (p) {
     p.hasProfile = true
     await redis.setex(sessionKey(sessionId), remainingTtl(session), JSON.stringify(session))
+    getIO().to(`blend:${sessionId}`).emit('blend:participant_ready', {
+      sessionId,
+      participantId,
+    })
   }
 }
 

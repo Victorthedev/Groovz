@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuthStore } from '../store/auth'
 import { api } from '../api/client'
 import { useToast } from '../components/ui/Toast'
@@ -29,8 +29,9 @@ export default function Auth() {
   const [errors, setErrors]     = useState<{ email?: string; password?: string; legal?: string }>({})
 
   const { setToken, setUser } = useAuthStore()
-  const navigate = useNavigate()
-  const toast    = useToast()
+  const navigate       = useNavigate()
+  const [searchParams] = useSearchParams()
+  const toast          = useToast()
 
   const validate = (): boolean => {
     const next: typeof errors = {}
@@ -68,7 +69,8 @@ export default function Auth() {
       ])
       setUser(me)
 
-      navigate(prefs.signalCollectionConsented ? '/' : '/onboarding', { replace: true })
+      const from = searchParams.get('from')
+      navigate(from ?? (prefs.signalCollectionConsented ? '/' : '/onboarding'), { replace: true })
     } catch (err) {
       toast((err as Error).message, 'error')
     } finally {

@@ -45,7 +45,7 @@ export async function expandFromSeed(
     const [tracks, tags, albums] = await Promise.all([
       lastfm.getArtistTopTracks(artist, limit),
       lastfm.getArtistTopTags(artist),
-      i < 20 ? lastfm.getArtistTopAlbums(artist, 3) : Promise.resolve([]),
+      lastfm.getArtistTopAlbums(artist, 3),   // all artists, not just first 20
     ])
 
     const artistContribution = artistSim * 0.3
@@ -78,8 +78,8 @@ export async function expandFromSeed(
       }
     }
 
-    // Album deep cuts for top 20 artists — tracklisting order, not popularity order
-    if (i < 20 && raw.size < targetRaw) {
+    // Album tracks for all artists — these are genuinely non-charting tracks
+    if (raw.size < targetRaw) {
       for (const album of albums.slice(0, 2)) {
         const albumTracks = await lastfm.getAlbumTracks(album.artist, album.name)
         for (const t of albumTracks) {
@@ -172,7 +172,11 @@ export async function expandFromPrompt(
   return buildPool(raw)
 }
 
-// ─── Deep Cuts expansion (3-hop similarity graph) ────────────────────────────
+// ─── Deep Cuts expansion ─────────────────────────────────────────────────────
+// Strategy: artist-similarity graph → album tracks only.
+// getSimilarArtists finds the right sonic neighbourhood.
+// getAlbumTracks gets genuinely obscure tracks (no listener data = popularity 0).
+// Top tracks are never fetched — that's the whole point.
 
 export async function expandFromSeedDeepCuts(
   seedTitle: string,
@@ -182,46 +186,29 @@ export async function expandFromSeedDeepCuts(
   const targetRaw = targetDurationMs >= 100 * 60 * 1000 ? TARGET_120MIN : TARGET_60MIN
   const raw = new Map<string, CanonicalTrack>()
 
-  // Hop 1 — direct track similarity from seed (50 tracks, narrower than standard)
-  const hop1 = await lastfm.getSimilarTracks(seedTitle, seedArtist, 50)
-  for (const t of hop1) {
-    addToRaw(raw, t.name, t.artist, {
-      baseSimilarity: t.match * 0.7,
-      durationMs: t.durationMs || undefined,
-      listeners: t.listeners,
-    })
-  }
+  // Discover the sonic neighbourhood via artist similarity
+  const similarArtists = await lastfm.getSimilarArtists(seedArtist, 60)
+  const artists = [{ name: seedArtist, match: 1.0 }, ...similarArtists]
 
-  // Hop 2 — similar tracks for each hop1 track (top 20 by match score)
-  for (const h1 of hop1.slice(0, 20)) {
-    const hop2 = await lastfm.getSimilarTracks(h1.name, h1.artist, 20)
-    for (const t of hop2) {
-      addToRaw(raw, t.name, t.artist, {
-        baseSimilarity: t.match * h1.match * 0.5,
-        durationMs: t.durationMs || undefined,
-        listeners: t.listeners,
-      })
-    }
-    if (raw.size >= targetRaw) break
-  }
+  for (const { name: artist, match: artistSim } of artists) {
+    const [tags, albums] = await Promise.all([
+      lastfm.getArtistTopTags(artist),
+      lastfm.getArtistTopAlbums(artist, 4),
+    ])
 
-  // Hop 3 — one more level from the top 5 hop2 discoveries
-  if (raw.size < targetRaw) {
-    const hop2Top = [...raw.values()]
-      .sort((a, b) => b.baseSimilarity - a.baseSimilarity)
-      .slice(0, 5)
-
-    for (const h2 of hop2Top) {
-      const hop3 = await lastfm.getSimilarTracks(h2.title, h2.artist, 10)
-      for (const t of hop3) {
+    for (const album of albums.slice(0, 3)) {
+      const albumTracks = await lastfm.getAlbumTracks(album.artist, album.name)
+      for (const t of albumTracks) {
         addToRaw(raw, t.name, t.artist, {
-          baseSimilarity: t.match * h2.baseSimilarity * 0.3,
+          baseSimilarity: artistSim * 0.6,
           durationMs: t.durationMs || undefined,
-          listeners: t.listeners,
+          listeners: 0,   // album tracks have no listener data — popularity = 0
+          tags,
         })
       }
-      if (raw.size >= targetRaw) break
     }
+
+    if (raw.size >= targetRaw) break
   }
 
   return buildPool(raw)
@@ -283,9 +270,11 @@ function buildPool(raw: Map<string, CanonicalTrack>): CandidatePool {
   return pool
 }
 
-// log10-based normalisation — 1M listeners → 1.0, ~1K → 0.5
+// log10-based normalisation — 100K listeners → 1.0, ~1K → 0.6
+// Divisor of 5 means the popular threshold (0.75) sits at ~5,600 listeners —
+// tracks below that are genuinely obscure and pass the Deep Cuts filter.
 function normaliseListeners(listeners: number): number {
-  return Math.min(1, Math.log10(listeners + 1) / 6)
+  return Math.min(1, Math.log10(listeners + 1) / 5)
 }
 
 // Tag overlap: what fraction of the intent tags appear in the track tags?
