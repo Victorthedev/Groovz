@@ -208,7 +208,7 @@ export default function Profile() {
         )}
       </section>
 
-      {/* Billing */}
+      {/* Billing — commented out until monetisation is ready
       {billing?.plan === 'free' && (
         <section className={styles.section}>
           <p className={styles.sectionTitle}>Upgrade</p>
@@ -231,6 +231,7 @@ export default function Profile() {
           </div>
         </section>
       )}
+      */}
 
       <section className={styles.section}>
         <p className={styles.sectionTitle}>Your taste</p>

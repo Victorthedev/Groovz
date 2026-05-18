@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client'
 import { prisma } from '../../shared/utils/prisma.js'
 import { deriveTrackFeatures, lookupTag, normaliseTag } from '../../shared/data/tag-mappings.js'
 import type { SignalType } from '@prisma/client'
@@ -300,7 +301,7 @@ export async function computeTasteProfile(userId: string): Promise<void> {
     energyTrend === 'falling' ? 'Slower and more atmospheric than last month' :
                                 'Pretty consistent with last month'
 
-  const temporalPatterns = stage >= 3 ? computeTemporalPatterns(signals) : null
+  const temporalPatterns = stage >= 3 ? computeTemporalPatterns(signals) : Prisma.DbNull
 
   const profileData = {
     signalCount,
