@@ -582,7 +582,6 @@ export default function Generate() {
                         onClick={() => setDuration(d)}
                       >
                         {d < 60 ? `${d}m` : `${d / 60}h`}
-                        {d === 120 && <Badge variant="premium">Pro</Badge>}
                       </button>
                     ))}
                   </div>

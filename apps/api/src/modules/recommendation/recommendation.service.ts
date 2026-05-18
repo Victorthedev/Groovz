@@ -287,8 +287,8 @@ export async function startWeeklyGeneration(userId: string): Promise<void> {
     prisma.tasteProfile.findUnique({ where: { userId } }),
   ])
 
-  // Weekly playlist is a paid feature (§9)
-  if (caps?.plan !== 'paid') return
+  // Weekly playlist is a paid feature (§9) — gating removed, all users get it
+  // if (caps?.plan !== 'paid') return
 
   if (!tasteProfile) return
   const stage = mlStage(tasteProfile.signalCount)
