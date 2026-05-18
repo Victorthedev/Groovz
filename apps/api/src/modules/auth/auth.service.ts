@@ -16,7 +16,9 @@ export interface AuthUser {
 }
 
 export async function signup(input: SignupInput): Promise<AuthUser> {
-  const existing = await prisma.user.findUnique({ where: { email: input.email } })
+  const email = input.email.toLowerCase().trim()
+
+  const existing = await prisma.user.findUnique({ where: { email } })
   if (existing) {
     throw Object.assign(new Error('Email already registered'), { statusCode: 409 })
   }
@@ -31,7 +33,7 @@ export async function signup(input: SignupInput): Promise<AuthUser> {
 
   const user = await prisma.user.create({
     data: {
-      email: input.email,
+      email,
       passwordHash,
       region: input.region,
       preferences: { create: {} },
@@ -45,7 +47,7 @@ export async function signup(input: SignupInput): Promise<AuthUser> {
 
 export async function login(email: string, password: string): Promise<AuthUser> {
   const user = await prisma.user.findUnique({
-    where: { email },
+    where: { email: email.toLowerCase().trim() },
     select: { id: true, email: true, passwordHash: true },
   })
 
@@ -67,4 +69,10 @@ export async function getMe(userId: string): Promise<AuthUser> {
   })
   if (!user) throw Object.assign(new Error('User not found'), { statusCode: 404 })
   return user
+}
+
+export async function deleteAccount(userId: string): Promise<void> {
+  // Prisma cascade deletes: ConnectedPlatform, UserPreferences, UserCapabilities,
+  // PlaylistRecord, UserSignal, Subscription, CryptoSubscription
+  await prisma.user.delete({ where: { id: userId } })
 }

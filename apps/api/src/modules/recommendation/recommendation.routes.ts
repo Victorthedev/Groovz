@@ -1,16 +1,20 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import * as service from './recommendation.service.js'
+import { prisma } from '../../shared/utils/prisma.js'
 
 const generateBody = z.object({
   type: z.enum(['seed', 'prompt', 'hybrid']),
   platform: z.enum(['spotify', 'deezer', 'audiomack', 'youtube_music']),
   seedDisplayId: z.string().optional(),
   prompt: z.string().max(500).optional(),
+  contextCardId: z.string().optional(),
+  deepCuts: z.boolean().optional(),
   intent: z.object({
     energy: z.enum(['low', 'medium', 'high']).optional(),
     tempo: z.enum(['slow', 'medium', 'fast']).optional(),
     mood: z.array(z.string()).optional(),
+    tags: z.array(z.string()).optional(),
     durationMinutes: z.number().int().min(1).max(480).optional(),
   }).optional(),
 }).superRefine((val, ctx) => {
@@ -23,9 +27,10 @@ const generateBody = z.object({
 })
 
 export async function registerRecommendationRoutes(fastify: FastifyInstance) {
-  const auth = { preHandler: [fastify.authenticate] }
+  const auth       = { preHandler: [fastify.authenticate] }
+  const genLimit   = { preHandler: [fastify.authenticate], config: { rateLimit: { max: 20, timeWindow: 60_000 } } }
 
-  fastify.post('/playlists/generate', auth, async (request, reply) => {
+  fastify.post('/playlists/generate', genLimit, async (request, reply) => {
     const body = generateBody.safeParse(request.body)
     if (!body.success) return reply.status(400).send({ error: 'Invalid request', details: body.error.flatten() })
 
@@ -51,7 +56,13 @@ export async function registerRecommendationRoutes(fastify: FastifyInstance) {
     const { id } = request.params as { id: string }
     const blueprint = await service.getBlueprint(id)
     if (!blueprint) return reply.status(404).send({ error: 'Blueprint not found or expired' })
-    return reply.send(blueprint)
+
+    // Merge narrative from DB — generated after blueprint is stored in Redis
+    const record = await prisma.playlistRecord.findUnique({
+      where: { id },
+      select: { narrative: true },
+    })
+    return reply.send({ ...blueprint, narrative: record?.narrative ?? null })
   })
 
   fastify.get('/playlists/history', auth, async (request, reply) => {

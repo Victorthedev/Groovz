@@ -172,6 +172,61 @@ export async function expandFromPrompt(
   return buildPool(raw)
 }
 
+// ─── Deep Cuts expansion (3-hop similarity graph) ────────────────────────────
+
+export async function expandFromSeedDeepCuts(
+  seedTitle: string,
+  seedArtist: string,
+  targetDurationMs: number,
+): Promise<CandidatePool> {
+  const targetRaw = targetDurationMs >= 100 * 60 * 1000 ? TARGET_120MIN : TARGET_60MIN
+  const raw = new Map<string, CanonicalTrack>()
+
+  // Hop 1 — direct track similarity from seed (50 tracks, narrower than standard)
+  const hop1 = await lastfm.getSimilarTracks(seedTitle, seedArtist, 50)
+  for (const t of hop1) {
+    addToRaw(raw, t.name, t.artist, {
+      baseSimilarity: t.match * 0.7,
+      durationMs: t.durationMs || undefined,
+      listeners: t.listeners,
+    })
+  }
+
+  // Hop 2 — similar tracks for each hop1 track (top 20 by match score)
+  for (const h1 of hop1.slice(0, 20)) {
+    const hop2 = await lastfm.getSimilarTracks(h1.name, h1.artist, 20)
+    for (const t of hop2) {
+      addToRaw(raw, t.name, t.artist, {
+        baseSimilarity: t.match * h1.match * 0.5,
+        durationMs: t.durationMs || undefined,
+        listeners: t.listeners,
+      })
+    }
+    if (raw.size >= targetRaw) break
+  }
+
+  // Hop 3 — one more level from the top 5 hop2 discoveries
+  if (raw.size < targetRaw) {
+    const hop2Top = [...raw.values()]
+      .sort((a, b) => b.baseSimilarity - a.baseSimilarity)
+      .slice(0, 5)
+
+    for (const h2 of hop2Top) {
+      const hop3 = await lastfm.getSimilarTracks(h2.title, h2.artist, 10)
+      for (const t of hop3) {
+        addToRaw(raw, t.name, t.artist, {
+          baseSimilarity: t.match * h2.baseSimilarity * 0.3,
+          durationMs: t.durationMs || undefined,
+          listeners: t.listeners,
+        })
+      }
+      if (raw.size >= targetRaw) break
+    }
+  }
+
+  return buildPool(raw)
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 interface RawInput {

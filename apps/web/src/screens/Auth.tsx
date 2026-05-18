@@ -20,31 +20,55 @@ const REGIONS: { value: Region; label: string }[] = [
 ]
 
 export default function Auth() {
-  const [mode, setMode]       = useState<Mode>('login')
-  const [email, setEmail]     = useState('')
+  const [mode, setMode]         = useState<Mode>('login')
+  const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
-  const [region, setRegion]   = useState<Region>('US')
-  const [loading, setLoading] = useState(false)
+  const [region, setRegion]     = useState<Region>('US')
+  const [loading, setLoading]   = useState(false)
+  const [agreedToTerms, setAgreedToTerms] = useState(false)
+  const [errors, setErrors]     = useState<{ email?: string; password?: string; legal?: string }>({})
 
-  const { setTokens, setUser } = useAuthStore()
+  const { setToken, setUser } = useAuthStore()
   const navigate = useNavigate()
   const toast    = useToast()
 
+  const validate = (): boolean => {
+    const next: typeof errors = {}
+    if (!email.trim()) {
+      next.email = 'Email is required'
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      next.email = 'Enter a valid email address'
+    }
+    if (!password) {
+      next.password = 'Password is required'
+    } else if (mode === 'signup' && password.length < 8) {
+      next.password = 'Password must be at least 8 characters'
+    }
+    if (mode === 'signup' && !agreedToTerms) {
+      next.legal = 'You must agree to the Privacy Policy and Terms of Service'
+    }
+    setErrors(next)
+    return Object.keys(next).length === 0
+  }
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
+    if (!validate()) return
     setLoading(true)
     try {
       const path = mode === 'signup' ? '/api/v1/auth/signup' : '/api/v1/auth/login'
       const body = mode === 'signup' ? { email, password, region } : { email, password }
 
-      const res = await api.post<{ accessToken: string; refreshToken: string }>(path, body)
-      setTokens(res.accessToken, res.refreshToken)
+      const res = await api.post<{ accessToken: string }>(path, body)
+      setToken(res.accessToken)
 
-      // Fetch the user profile and store it
-      const me = await api.get<{ id: string; email: string }>('/api/v1/auth/me')
+      const [me, prefs] = await Promise.all([
+        api.get<{ id: string; email: string }>('/api/v1/auth/me'),
+        api.get<{ signalCollectionConsented: boolean }>('/api/v1/user/preferences'),
+      ])
       setUser(me)
 
-      navigate('/', { replace: true })
+      navigate(prefs.signalCollectionConsented ? '/' : '/onboarding', { replace: true })
     } catch (err) {
       toast((err as Error).message, 'error')
     } finally {
@@ -61,19 +85,18 @@ export default function Auth() {
       </div>
 
       <form className={styles.form} onSubmit={handleSubmit} noValidate>
-        {/* Mode toggle */}
         <div className={styles.toggle}>
           <button
             type="button"
             className={[styles.toggleBtn, mode === 'login' ? styles.toggleActive : ''].join(' ')}
-            onClick={() => setMode('login')}
+            onClick={() => { setMode('login'); setErrors({}); setAgreedToTerms(false) }}
           >
             Log in
           </button>
           <button
             type="button"
             className={[styles.toggleBtn, mode === 'signup' ? styles.toggleActive : ''].join(' ')}
-            onClick={() => setMode('signup')}
+            onClick={() => { setMode('signup'); setErrors({}); setAgreedToTerms(false) }}
           >
             Sign up
           </button>
@@ -84,9 +107,9 @@ export default function Auth() {
           label="Email"
           placeholder="you@example.com"
           value={email}
-          onChange={e => setEmail(e.target.value)}
+          onChange={e => { setEmail(e.target.value); setErrors(prev => ({ ...prev, email: undefined })) }}
           autoComplete="email"
-          required
+          error={errors.email}
         />
 
         <Input
@@ -94,24 +117,52 @@ export default function Auth() {
           label="Password"
           placeholder={mode === 'signup' ? 'At least 8 characters' : 'Your password'}
           value={password}
-          onChange={e => setPassword(e.target.value)}
+          onChange={e => { setPassword(e.target.value); setErrors(prev => ({ ...prev, password: undefined })) }}
           autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
-          required
+          error={errors.password}
         />
 
         {mode === 'signup' && (
-          <div className={styles.regionWrapper}>
-            <label className={styles.regionLabel}>Region</label>
-            <select
-              className={styles.regionSelect}
-              value={region}
-              onChange={e => setRegion(e.target.value as Region)}
-            >
-              {REGIONS.map(r => (
-                <option key={r.value} value={r.value}>{r.label}</option>
-              ))}
-            </select>
-          </div>
+          <>
+            <div className={styles.regionWrapper}>
+              <label className={styles.regionLabel}>Region</label>
+              <select
+                className={styles.regionSelect}
+                value={region}
+                onChange={e => setRegion(e.target.value as Region)}
+              >
+                {REGIONS.map(r => (
+                  <option key={r.value} value={r.value}>{r.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className={styles.legalCheck}>
+              <div className={styles.legalCheckRow}>
+                <input
+                  type="checkbox"
+                  id="legal-agree"
+                  className={styles.legalCheckbox}
+                  checked={agreedToTerms}
+                  onChange={e => {
+                    setAgreedToTerms(e.target.checked)
+                    setErrors(prev => ({ ...prev, legal: undefined }))
+                  }}
+                />
+                <label htmlFor="legal-agree" className={styles.legalLabel}>
+                  I agree to the{' '}
+                  <a href="/privacy" target="_blank" rel="noopener noreferrer" className={styles.legalLink}>
+                    Privacy Policy
+                  </a>
+                  {' '}and{' '}
+                  <a href="/terms" target="_blank" rel="noopener noreferrer" className={styles.legalLink}>
+                    Terms of Service
+                  </a>
+                </label>
+              </div>
+              {errors.legal && <p className={styles.legalError}>{errors.legal}</p>}
+            </div>
+          </>
         )}
 
         <Button type="submit" fullWidth loading={loading}>

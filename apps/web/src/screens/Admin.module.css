@@ -1,0 +1,157 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100dvh - var(--nav-height));
+  padding: calc(var(--space-4) + env(safe-area-inset-top)) var(--space-4) var(--space-8);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-6);
+}
+
+.title {
+  font-family: 'Clash Display', sans-serif;
+  font-weight: 600;
+  font-size: var(--text-2xl);
+  color: var(--color-text-primary);
+  letter-spacing: -0.03em;
+}
+
+.refreshBtn {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: color var(--duration-fast);
+}
+
+.refreshBtn:active { color: var(--color-accent); }
+
+/* ─── Sections ───────────────────────────────────────────────────────────────── */
+.section {
+  margin-bottom: var(--space-6);
+}
+
+.sectionTitle {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: var(--space-3);
+}
+
+/* ─── Stat grid ──────────────────────────────────────────────────────────────── */
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+@media (min-width: 768px) {
+  .grid { grid-template-columns: 1fr 1fr 1fr; }
+}
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+}
+
+.cardLabel {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-2);
+}
+
+.cardValue {
+  font-family: 'Clash Display', sans-serif;
+  font-weight: 700;
+  font-size: var(--text-2xl);
+  color: var(--color-text-primary);
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.cardSub {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  margin-top: var(--space-1);
+}
+
+/* Loading skeleton */
+.cardValueSkeleton {
+  height: 32px;
+  width: 60%;
+  background: var(--color-surface-raised);
+  border-radius: var(--radius-sm);
+  animation: breathe 3s ease-in-out infinite;
+  opacity: 0.3;
+}
+
+/* ─── CSS bar chart ──────────────────────────────────────────────────────────── */
+.barChart {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.barRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.barMeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.barLabel {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  text-transform: capitalize;
+}
+
+.barCount {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.barTrack {
+  height: 8px;
+  background: var(--color-border);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.barFill {
+  height: 100%;
+  background: var(--color-accent);
+  border-radius: var(--radius-full);
+  transition: width var(--duration-slow) var(--ease-out);
+}
+
+.barPct {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}

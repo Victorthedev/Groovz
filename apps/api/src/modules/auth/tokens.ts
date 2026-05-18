@@ -18,26 +18,21 @@ declare module '@fastify/jwt' {
   }
 }
 
-export interface TokenPair {
-  accessToken: string
-  refreshToken: string
+export function signAccessToken(userId: string, email: string, fastify: FastifyInstance): string {
+  return fastify.jwt.sign({ userId, email, type: 'access' }, { expiresIn: '15m' })
 }
 
-export function signTokens(
-  userId: string,
-  email: string,
-  fastify: FastifyInstance,
-): TokenPair {
-  return {
-    accessToken: fastify.jwt.sign(
-      { userId, email, type: 'access' },
-      { expiresIn: '15m' },
-    ),
-    refreshToken: fastify.jwt.sign(
-      { userId, email, type: 'refresh' },
-      { expiresIn: '7d' },
-    ),
-  }
+export function signRefreshToken(userId: string, email: string, fastify: FastifyInstance): string {
+  return fastify.jwt.sign({ userId, email, type: 'refresh' }, { expiresIn: '7d' })
+}
+
+export const REFRESH_COOKIE = 'groovz_refresh'
+export const REFRESH_COOKIE_OPTS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'strict' as const,
+  path: '/',
+  maxAge: 7 * 24 * 60 * 60,  // 7 days in seconds
 }
 
 // ─── OAuth state (CSRF protection for platform connect flow) ──────────────────

@@ -3,7 +3,7 @@ import type { CanonicalTrack, Intent } from './index.js'
 export interface PlaylistSession {
   sessionId: string
   userId: string
-  generationType: 'seed' | 'prompt' | 'hybrid' | 'weekly_ml'
+  generationType: 'seed' | 'prompt' | 'hybrid' | 'weekly_ml' | 'blend'
   targetPlatform: string
 
   // Duration (§5.6)
@@ -25,6 +25,7 @@ export interface PlaylistSession {
   temperature: number
   iteration: number
   softPenaltiesRelaxed: boolean  // §5.7 candidate exhaustion step 1
+  deepCuts: boolean               // uses 3-hop expansion, inverted popularity weights
 
   // Intent
   intent?: Intent
@@ -36,6 +37,13 @@ export interface PlaylistSession {
   // §16.3 — stored, not used for per-candidate scoring in v1
   promptEmbedding?: number[]
   embeddingFailed: boolean       // triggers §5.7 tag-overlap fallback
+
+  // ML affinity (§8, §18.4) — populated from TasteProfile at session start, 0 = rules-only
+  mlStage: 0 | 1 | 2 | 3
+  affinityMaps?: {
+    artists: Record<string, number>
+    tags: Record<string, number>
+  }
 }
 
 export interface CandidatePool {

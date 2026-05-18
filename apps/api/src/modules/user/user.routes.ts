@@ -7,6 +7,9 @@ const preferencesUpdateBody = z.object({
   defaultDuration: z.number().int().min(1).max(480).optional(),
   diversityBias: z.number().min(0).max(1).optional(),
   whatsappPhone: z.string().optional(),
+  signalCollectionConsented: z.boolean().optional(),
+  spotifySignalEnabled: z.boolean().optional(),
+  seenFeatureIntros: z.array(z.string()).optional(),
 })
 
 export async function registerUserRoutes(fastify: FastifyInstance) {
@@ -28,5 +31,10 @@ export async function registerUserRoutes(fastify: FastifyInstance) {
   fastify.get('/user/capabilities', auth, async (request, reply) => {
     const caps = await userService.getCapabilities(request.user.userId)
     return reply.send(caps)
+  })
+
+  fastify.get('/user/taste-summary', auth, async (request, reply) => {
+    const summary = await userService.getTasteSummary(request.user.userId)
+    return reply.send(summary)
   })
 }

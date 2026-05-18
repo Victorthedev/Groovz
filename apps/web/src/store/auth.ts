@@ -8,10 +8,9 @@ export interface AuthUser {
 
 interface AuthState {
   accessToken: string | null
-  refreshToken: string | null
   user: AuthUser | null
   isLoading: boolean
-  setTokens: (access: string, refresh: string) => void
+  setToken: (access: string) => void
   setUser: (user: AuthUser) => void
   setLoading: (loading: boolean) => void
   clear: () => void
@@ -21,25 +20,18 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
       accessToken: null,
-      refreshToken: null,
       user: null,
       isLoading: true,
 
-      setTokens: (accessToken, refreshToken) => set({ accessToken, refreshToken }),
-      setUser: (user) => set({ user }),
+      setToken:   (accessToken) => set({ accessToken }),
+      setUser:    (user) => set({ user }),
       setLoading: (isLoading) => set({ isLoading }),
-      clear: () => set({ accessToken: null, refreshToken: null, user: null }),
+      clear:      () => set({ accessToken: null, user: null }),
     }),
     {
       name: 'groovz-auth',
-      partialize: (s) => ({
-        accessToken: s.accessToken,
-        refreshToken: s.refreshToken,
-        user: s.user,
-      }),
-      onRehydrateStorage: () => (state) => {
-        state?.setLoading(false)
-      },
+      partialize: (s) => ({ accessToken: s.accessToken, user: s.user }),
+      onRehydrateStorage: () => (state) => { state?.setLoading(false) },
     },
   ),
 )

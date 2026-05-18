@@ -110,15 +110,24 @@ export default function Chat() {
 
         {/* Platform picker */}
         <div className={styles.platformRow}>
-          {PLATFORMS.map(({ value, label }) => (
-            <button
-              key={value}
-              className={[styles.platformPill, platform === value ? styles.platformPillActive : ''].join(' ')}
-              onClick={() => setPlatform(value)}
-            >
-              {label}
-            </button>
-          ))}
+          {PLATFORMS.map(({ value, label }) => {
+            const isAvailable = value === 'spotify'
+            return (
+              <button
+                key={value}
+                className={[
+                  styles.platformPill,
+                  platform === value ? styles.platformPillActive : '',
+                  !isAvailable ? styles.platformPillSoon : '',
+                ].filter(Boolean).join(' ')}
+                onClick={() => isAvailable && setPlatform(value)}
+                disabled={!isAvailable}
+                title={!isAvailable ? 'Coming soon' : undefined}
+              >
+                {label}
+              </button>
+            )
+          })}
         </div>
 
         {/* Messages */}
@@ -129,7 +138,7 @@ export default function Chat() {
               <div className={styles.suggestions}>
                 {[
                   'Late night drive, energetic',
-                  'Studying — no lyrics, focused',
+                  'Studying, no lyrics, focused',
                   'Getting ready to go out',
                   'Sunday morning vibes',
                 ].map(s => (
@@ -164,7 +173,7 @@ export default function Chat() {
                       View playlist →
                     </button>
                   ) : generation.status === 'error' && generation.blueprintId === msg.blueprintId
-                  ? <span className={styles.viewPlaylistBtn} style={{ color: 'var(--color-text-muted)' }}>Generation failed — try again</span>
+                  ? <span className={styles.viewPlaylistBtn} style={{ color: 'var(--color-text-muted)' }}>Generation failed. Try again.</span>
                   : <span className={styles.viewPlaylistBtn} style={{ opacity: 0.5 }}>Creating playlist…</span>
               )}
             </div>

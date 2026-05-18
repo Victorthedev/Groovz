@@ -38,8 +38,11 @@ export default function Profile() {
   const [billing, setBilling]     = useState<BillingStatus | null>(null)
   const [caps, setCaps]           = useState<Capabilities | null>(null)
   const [platforms, setPlatforms] = useState<ConnectedPlatform[]>([])
-  const [connecting, setConnecting] = useState<string | null>(null)
+  const [spotifyEnabled, setSpotifyEnabled] = useState<boolean | null>(null)
+  const [connecting, setConnecting]       = useState<string | null>(null)
   const [disconnecting, setDisconnecting] = useState<string | null>(null)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleting, setDeleting]           = useState(false)
   const navigate = useNavigate()
   const toast    = useToast()
 
@@ -48,10 +51,12 @@ export default function Profile() {
       api.get<BillingStatus>('/api/v1/billing/status'),
       api.get<Capabilities>('/api/v1/user/capabilities'),
       api.get<{ platforms: ConnectedPlatform[] }>('/api/v1/platforms/connected').catch(() => ({ platforms: [] })),
-    ]).then(([b, c, p]) => {
+      api.get<{ spotifySignalEnabled: boolean }>('/api/v1/user/preferences'),
+    ]).then(([b, c, p, prefs]) => {
       setBilling(b)
       setCaps(c)
       setPlatforms(p.platforms)
+      setSpotifyEnabled(prefs.spotifySignalEnabled)
     }).catch(() => {})
   }, [])
 
@@ -79,9 +84,34 @@ export default function Profile() {
     }
   }
 
-  const handleLogout = () => {
+  const handleToggleSpotifySignals = async () => {
+    const next = !spotifyEnabled
+    setSpotifyEnabled(next)
+    try {
+      await api.patch('/api/v1/user/preferences', { spotifySignalEnabled: next })
+    } catch {
+      setSpotifyEnabled(!next)
+      toast('Could not update preference', 'error')
+    }
+  }
+
+  const handleLogout = async () => {
+    await api.post('/api/v1/auth/logout').catch(() => {})
     clear()
     navigate('/auth', { replace: true })
+  }
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true)
+    try {
+      await api.delete('/api/v1/auth/account')
+      clear()
+      navigate('/auth', { replace: true })
+    } catch (err) {
+      toast((err as Error).message, 'error')
+      setDeleting(false)
+      setShowDeleteModal(false)
+    }
   }
 
   const initial = user?.email?.[0]?.toUpperCase() ?? '?'
@@ -111,7 +141,7 @@ export default function Profile() {
           <div className={styles.capsRow}>
             <div className={styles.capItem}>
               <p className={styles.capValue}>{caps.playlistsGeneratedThisMonth}</p>
-              <p className={styles.capLabel}>of {caps.maxPlaylistsPerMonth === 9999 ? '∞' : caps.maxPlaylistsPerMonth} playlists</p>
+              <p className={styles.capLabel}>playlists generated</p>
             </div>
             <div className={styles.capItem}>
               <p className={styles.capValue}>{caps.maxPlaylistDurationMinutes}m</p>
@@ -142,7 +172,7 @@ export default function Profile() {
                   >
                     {disconnecting === platform ? '…' : 'Disconnect'}
                   </button>
-                ) : (
+                ) : platform === 'spotify' ? (
                   <button
                     className={[styles.platformAction, styles.platformActionConnect].join(' ')}
                     onClick={() => handleConnect(platform)}
@@ -150,45 +180,107 @@ export default function Profile() {
                   >
                     {connecting === platform ? '…' : 'Connect'}
                   </button>
+                ) : (
+                  <span className={styles.platformComingSoon}>Coming soon</span>
                 )}
               </div>
             )
           })}
         </div>
+
+        {/* Spotify signal collection toggle — fulfils the withdrawal right in the Privacy Policy */}
+        {isConnected('spotify') && spotifyEnabled !== null && (
+          <div className={styles.signalToggleRow}>
+            <div className={styles.signalToggleInfo}>
+              <p className={styles.signalToggleLabel}>Include my Spotify listening history</p>
+              <p className={styles.signalToggleSub}>Lets Groovz learn from what you've been playing</p>
+            </div>
+            <button
+              className={[styles.signalToggle, spotifyEnabled ? styles.signalToggleOn : ''].join(' ')}
+              onClick={handleToggleSpotifySignals}
+              role="switch"
+              aria-checked={spotifyEnabled}
+              aria-label="Toggle Spotify listening history"
+            >
+              <span className={styles.signalToggleThumb} />
+            </button>
+          </div>
+        )}
       </section>
 
       {/* Billing */}
-      {billing?.plan === 'free' && billing.pricing && (
+      {billing?.plan === 'free' && (
         <section className={styles.section}>
           <p className={styles.sectionTitle}>Upgrade</p>
           <div className={styles.upgradeCard}>
-            <div>
-              <p className={styles.upgradeTitle}>Groovz Pro</p>
+            <p className={styles.upgradeTitle}>Groovz Pro</p>
+            {billing.pricing && (
               <p className={styles.upgradePrice}>{billing.pricing.label}</p>
-              <ul className={styles.upgradePerks}>
-                <li>Unlimited playlists</li>
-                <li>Up to 4 hours per playlist</li>
-                <li>Multiple platforms simultaneously</li>
-                <li>Weekly personalised mix</li>
-              </ul>
-            </div>
-            <Button
-              fullWidth
-              onClick={() =>
-                api.post<{ url: string }>('/api/v1/billing/stripe/checkout')
-                  .then(r => window.location.href = r.url)
-                  .catch(e => toast((e as Error).message, 'error'))
-              }
-            >
-              Upgrade to Pro
-            </Button>
+            )}
+            <ul className={styles.upgradePerks}>
+              <li>Up to 4 hours per playlist</li>
+              <li>Multiple platforms simultaneously</li>
+              <li>WhatsApp bot, generate playlists from anywhere</li>
+              <li>Road Trip, routes and playlists built around each other</li>
+              <li>Drive Chapters, a distinct sound for each stretch</li>
+              <li>Weekly personalised mix that updates automatically</li>
+              <li>Moment Playlists, suggestions that know the time and day</li>
+              <li>Context Cards personalised to your listening history</li>
+            </ul>
+            <div className={styles.comingSoon}>Coming Soon</div>
           </div>
         </section>
       )}
 
       <section className={styles.section}>
-        <Button variant="ghost" fullWidth onClick={handleLogout}>Log out</Button>
+        <p className={styles.sectionTitle}>Your taste</p>
+        <button className={styles.tasteRow} onClick={() => navigate('/taste-card')}>
+          <span className={styles.tasteRowLabel}>Share Your Taste</span>
+          <span className={styles.tasteRowChevron}>›</span>
+        </button>
       </section>
+
+      <section className={styles.section}>
+        <a href="mailto:ubahakweemeka@gmail.com" className={styles.contactLink}>Contact support</a>
+        <Button variant="ghost" fullWidth onClick={handleLogout}>Log out</Button>
+        <button className={styles.deleteBtn} onClick={() => setShowDeleteModal(true)}>
+          Delete account
+        </button>
+      </section>
+
+      <div className={styles.legalLinks}>
+        <a href="/privacy" target="_blank" rel="noopener noreferrer" className={styles.legalLink}>Privacy Policy</a>
+        <span className={styles.legalDot}>·</span>
+        <a href="/terms" target="_blank" rel="noopener noreferrer" className={styles.legalLink}>Terms of Service</a>
+      </div>
+
+      {showDeleteModal && (
+        <>
+          <div className={styles.modalBackdrop} onClick={() => setShowDeleteModal(false)} />
+          <div className={styles.modal} role="dialog" aria-modal="true">
+            <h2 className={styles.modalTitle}>Delete your account?</h2>
+            <p className={styles.modalBody}>
+              This permanently deletes your account, all your playlists and your listening history. There is no undo.
+            </p>
+            <div className={styles.modalActions}>
+              <button
+                className={styles.modalDelete}
+                onClick={handleDeleteAccount}
+                disabled={deleting}
+              >
+                {deleting ? 'Deleting…' : 'Yes, delete my account'}
+              </button>
+              <button
+                className={styles.modalCancel}
+                onClick={() => setShowDeleteModal(false)}
+                disabled={deleting}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }

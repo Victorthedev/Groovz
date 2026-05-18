@@ -1,6 +1,7 @@
 import { lerp } from '../../../shared/utils/index.js'
 import { getArtistPenalty, getTagDiversityPenalty } from './fatigue.js'
-import type { CanonicalTrack, Intent } from '../../../shared/types/index.js'
+import { computeAffinityScore } from '../../ml/index.js'
+import type { CanonicalTrack } from '../../../shared/types/index.js'
 import type { PlaylistSession } from '../../../shared/types/session.js'
 
 // ─── Full scoring function (§5.3) ─────────────────────────────────────────────
@@ -28,20 +29,26 @@ export function scoreTrack(
   const pArtist = session.softPenaltiesRelaxed ? 1.0 : getArtistPenalty(track, session)
   const pTag    = session.softPenaltiesRelaxed ? 1.0 : getTagDiversityPenalty(track, session)
 
-  // Dynamic weights shift with temperature (§5.3)
-  const wPop   = lerp(0.4, 0.1, T)
-  const wNovel = lerp(0.1, 0.4, T)
+  // Dynamic weights — Deep Cuts inverts the popularity/novelty balance
+  const wPop   = session.deepCuts ? 0.05 : lerp(0.4, 0.1, T)
+  const wNovel = session.deepCuts ? 0.45 : lerp(0.1, 0.4, T)
   const wSim   = 0.5
   const wEnergy = 0.15
   const wTempo  = 0.15
 
-  const sRaw = (
+  let sRaw = (
     wSim * sBase +
     wEnergy * sEnergy +
     wTempo * sTempo +
     wPop * sPop +
     wNovel * sNovel
   ) * pArtist * pTag
+
+  // ML affinity signal (§8) — additive, weight grows with stage confidence
+  if (session.mlStage >= 1 && session.affinityMaps) {
+    const wAffinity = 0.1 + (session.mlStage - 1) * 0.05  // 0.1 → 0.15 → 0.2
+    sRaw += wAffinity * computeAffinityScore(track, session.affinityMaps)
+  }
 
   return sRaw
 }

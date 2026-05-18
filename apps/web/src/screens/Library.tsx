@@ -13,6 +13,7 @@ interface HistoryItem {
   seedTrackTitle: string | null
   seedTrackArtist: string | null
   promptSummary: string | null
+  narrative: string | null
   durationMinutes: number
   trackCount: number
   platformPlaylistUrl: string | null
@@ -88,6 +89,9 @@ export default function Library() {
                   <p className={styles.cardMeta}>
                     {pl.platform} · {pl.durationMinutes}m · {pl.trackCount} tracks · {formatDate(pl.createdAt)}
                   </p>
+                  {pl.narrative && (
+                    <p className={styles.cardNarrative}>{pl.narrative}</p>
+                  )}
                 </div>
                 <ChevronIcon />
               </button>

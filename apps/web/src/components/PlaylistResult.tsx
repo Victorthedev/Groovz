@@ -17,6 +17,8 @@ interface Blueprint {
   totalDurationMs: number
   generationType: string
   intent?: { mood?: string[]; energy?: string }
+  narrative?: string | null
+  deepCuts?: boolean
 }
 
 interface ExportResult {
@@ -25,14 +27,23 @@ interface ExportResult {
   failedTracks: number
 }
 
+interface BlendParticipant {
+  id: string
+  displayName: string
+  isAnonymous: boolean
+}
+
 interface Props {
   open: boolean
   blueprintId: string | null
   platform: string
   onClose: () => void
+  isBlend?: boolean
+  isHost?: boolean
+  blendParticipants?: BlendParticipant[]
 }
 
-export default function PlaylistResult({ open, blueprintId, platform, onClose }: Props) {
+export default function PlaylistResult({ open, blueprintId, platform, onClose, isBlend, isHost, blendParticipants }: Props) {
   const [blueprint, setBlueprint]     = useState<Blueprint | null>(null)
   const [loading, setLoading]         = useState(false)
   const [exporting, setExporting]     = useState(false)
@@ -91,7 +102,9 @@ export default function PlaylistResult({ open, blueprintId, platform, onClose }:
             <div className={styles.header}>
               <div>
                 <h2 className={styles.title}>
-                  {blueprint.intent?.energy
+                  {isBlend
+                    ? 'Your Blend'
+                    : blueprint.intent?.energy
                     ? `${capitalise(blueprint.intent.energy)} Energy Mix`
                     : blueprint.generationType === 'seed'
                     ? 'Your Mix'
@@ -99,20 +112,47 @@ export default function PlaylistResult({ open, blueprintId, platform, onClose }:
                 </h2>
                 <p className={styles.meta}>
                   {totalMin}m · {blueprint.tracks.length} tracks · {platform}
+                  {blueprint.deepCuts && <span className={styles.deepCutsBadge}>Deep Cuts</span>}
                 </p>
+                {isBlend && blendParticipants && blendParticipants.length > 1 && (
+                  <div className={styles.blendMeta}>
+                    {blendParticipants.map(p => (
+                      <span key={p.id} className={styles.blendCircle}>{p.displayName}</span>
+                    ))}
+                    <span className={styles.blendWith}>
+                      Blended with {blendParticipants.slice(1).map(p => p.displayName).join(', ')}
+                    </span>
+                  </div>
+                )}
+                {blueprint.narrative && (
+                  <p className={styles.narrative}>{blueprint.narrative}</p>
+                )}
               </div>
             </div>
 
             <div className={styles.actions}>
               {exportResult ? (
-                <a
-                  href={exportResult.platformPlaylistUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={styles.openBtn}
-                >
-                  Open in {capitalise(platform)} →
-                </a>
+                <>
+                  <a
+                    href={exportResult.platformPlaylistUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={styles.openBtn}
+                  >
+                    Open in {capitalise(platform)} →
+                  </a>
+                  {isBlend && isHost && platform === 'spotify' && (
+                    <a
+                      href={exportResult.platformPlaylistUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={styles.jamBtn}
+                    >
+                      <SpotifyIcon />
+                      Start a Jam
+                    </a>
+                  )}
+                </>
               ) : (
                 <Button fullWidth loading={exporting} onClick={handleExport}>
                   Export to {capitalise(platform)}
@@ -155,4 +195,12 @@ function capitalise(s: string) { return s.charAt(0).toUpperCase() + s.slice(1).r
 function formatMs(ms: number) {
   const s = Math.round(ms / 1000)
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+}
+
+function SpotifyIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424a.622.622 0 01-.857.207c-2.348-1.435-5.304-1.76-8.785-.964a.622.622 0 11-.277-1.215c3.809-.87 7.077-.496 9.712 1.115.294.18.387.565.207.857zm1.223-2.723a.779.779 0 01-1.072.257c-2.687-1.652-6.785-2.131-9.965-1.166a.779.779 0 01-.973-.519.779.779 0 01.519-.973c3.632-1.102 8.147-.568 11.234 1.329.37.227.484.71.257 1.072zm.105-2.835C14.692 8.95 9.375 8.775 6.297 9.71a.935.935 0 11-.543-1.79c3.532-1.072 9.404-.865 13.115 1.338a.935.935 0 01-.955 1.608z"/>
+    </svg>
+  )
 }

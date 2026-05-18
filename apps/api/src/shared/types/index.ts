@@ -26,10 +26,11 @@ export interface PlaylistBlueprint {
   id: string
   tracks: CanonicalTrack[]
   totalDurationMs: number
-  generationType: 'seed' | 'prompt' | 'hybrid' | 'weekly_ml'
+  generationType: 'seed' | 'prompt' | 'hybrid' | 'weekly_ml' | 'blend'
   intent?: Intent
   backupTracks?: CanonicalTrack[]  // pre-scored candidates for resolution fallback (§5.9)
   seedWasRemix?: boolean           // controls reject-keyword filter in resolver
+  deepCuts?: boolean
 }
 
 export interface ResolvedTrack {

@@ -33,11 +33,18 @@ export async function generate(
     // Apply duration fit check (§5.6)
     candidates = candidates.filter(t => fitsInSession(t, session))
 
-    // 20% popular track cap — enforce after other filters so we never get stuck
+    // Deep Cuts — hard filter: no mainstream tracks (popularity > 0.75) in the pool
+    if (session.deepCuts) {
+      const underground = candidates.filter(t => (t.popularity ?? 0) <= 0.75)
+      if (underground.length > 0) candidates = underground
+    }
+
+    // Popular track cap — stricter threshold (0.5) in Deep Cuts mode
+    const popularThreshold = session.deepCuts ? 0.5 : 0.75
     if (session.selectedTracks.length > 0) {
       const popularRatio = session.popularTrackCount / session.selectedTracks.length
       if (popularRatio >= 0.2) {
-        const nonPopular = candidates.filter(t => (t.popularity ?? 0) < 0.75)
+        const nonPopular = candidates.filter(t => (t.popularity ?? 0) < popularThreshold)
         if (nonPopular.length > 0) candidates = nonPopular
       }
     }
@@ -94,6 +101,7 @@ export async function generate(
     generationType: session.generationType,
     intent: session.intent,
     backupTracks,
+    deepCuts: session.deepCuts || undefined,
   }
 }
 
@@ -175,6 +183,9 @@ export function createSession(params: {
   intent?: PlaylistSession['intent']
   promptEmbedding?: number[]
   embeddingFailed?: boolean
+  deepCuts?: boolean
+  mlStage?: 0 | 1 | 2 | 3
+  affinityMaps?: PlaylistSession['affinityMaps']
 }): PlaylistSession {
   const toleranceMs = 10 * 60 * 1000  // ±10 minutes (§5.1)
   return {
@@ -201,5 +212,8 @@ export function createSession(params: {
     seedTrackArtist: params.seedTrackArtist,
     promptEmbedding: params.promptEmbedding,
     embeddingFailed: params.embeddingFailed ?? false,
+    deepCuts: params.deepCuts ?? false,
+    mlStage: params.mlStage ?? 0,
+    affinityMaps: params.affinityMaps,
   }
 }
