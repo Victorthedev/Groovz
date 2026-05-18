@@ -17,12 +17,13 @@ export async function getPreferences(userId: string) {
 }
 
 export async function updatePreferences(userId: string, update: PreferencesUpdate) {
-  if (update.diversityBias !== undefined) {
-    const caps = await prisma.userCapabilities.findUnique({ where: { userId } })
-    if (!caps || caps.plan !== 'paid') {
-      throw Object.assign(new Error('diversityBias tuning requires a paid plan'), { statusCode: 403 })
-    }
-  }
+  // diversityBias tuning was paid-only — gating removed, all users can tune it
+  // if (update.diversityBias !== undefined) {
+  //   const caps = await prisma.userCapabilities.findUnique({ where: { userId } })
+  //   if (!caps || caps.plan !== 'paid') {
+  //     throw Object.assign(new Error('diversityBias tuning requires a paid plan'), { statusCode: 403 })
+  //   }
+  // }
 
   return prisma.userPreferences.update({
     where: { userId },
