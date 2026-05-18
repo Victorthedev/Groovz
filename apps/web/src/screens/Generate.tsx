@@ -77,7 +77,7 @@ export default function Generate() {
   // ─── Home state ─────────────────────────────────────────────────────────────
   const [tasteSummary, setTasteSummary]         = useState<TasteSummary | null>(null)
   const [blendIntroPending, setBlendIntroPending] = useState(false)
-  const [roadTripSheetOpen, setRoadTripSheetOpen] = useState(false)
+
   const [history, setHistory]                   = useState<HistoryItem[]>([])
   const [promptIdx, setPromptIdx]               = useState(0)
 
@@ -247,12 +247,9 @@ export default function Generate() {
             <p className={styles.modeCardDesc}>One playlist built for everyone in the room</p>
           </button>
 
-          <button className={[styles.modeCard, styles.modeCardPro].join(' ')} onClick={() => setRoadTripSheetOpen(true)}>
+          <button className={styles.modeCard} onClick={() => navigate('/road-trip')}>
             <FrequencyVisualiserBars mode="idle" count={3} height={12} />
-            <div className={styles.modeCardTitleRow}>
-              <p className={styles.modeCardTitle}>Road Trip</p>
-              <Badge variant="premium">Pro</Badge>
-            </div>
+            <p className={styles.modeCardTitle}>Road Trip</p>
             <p className={styles.modeCardDesc}>A route and a playlist, designed together</p>
           </button>
         </div>
@@ -609,19 +606,6 @@ export default function Generate() {
         </div>
       )}
 
-      {/* ─── Road Trip coming soon sheet ───────────────────────────────────── */}
-      {roadTripSheetOpen && (
-        <>
-          <div className={styles.rtBackdrop} onClick={() => setRoadTripSheetOpen(false)} aria-hidden="true" />
-          <div className={styles.rtSheet} role="dialog" aria-modal="true">
-            <h2 className={styles.rtTitle}>Road Trip</h2>
-            <p className={styles.rtBody}>
-              Plan a route and Groovz builds a playlist that fits it exactly. The music and the road, designed together. Coming to Groovz Pro.
-            </p>
-            <button className={styles.rtCta} onClick={() => setRoadTripSheetOpen(false)}>Got it</button>
-          </div>
-        </>
-      )}
 
       {/* ─── Playlist result ───────────────────────────────────────────────── */}
       <PlaylistResult

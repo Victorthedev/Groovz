@@ -11,6 +11,7 @@ import exportPlugin from './modules/export/index.js'
 import chatPlugin from './modules/chat/index.js'
 import blendPlugin from './modules/blend/index.js'
 import adminPlugin from './modules/admin/index.js'
+import routePlugin from './modules/route/index.js'
 import { startPlaylistGenerationWorker } from './jobs/playlist-generation.job.js'
 import { startSpotifySignalJobs } from './jobs/spotify-signals.job.js'
 import { startWeeklyRecommendationJob } from './jobs/weekly-recommendation.job.js'
@@ -64,6 +65,7 @@ app.register(async (fastify) => {
   fastify.register(exportPlugin)
   fastify.register(chatPlugin)
   fastify.register(blendPlugin)
+  fastify.register(routePlugin)
   fastify.register(adminPlugin)
 }, { prefix: '/api/v1' })
 

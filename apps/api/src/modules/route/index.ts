@@ -1,5 +1,9 @@
-// route module — road trip route generation (v3, premium only)
-// Modes: loop (start = end) | directed (A → B)
-// Outputs an estimated duration that feeds the recommendation module as targetDuration
-// Routes: POST /routes/generate
-// Never touches music logic directly
+import type { FastifyInstance } from 'fastify'
+import fp from 'fastify-plugin'
+import { registerRouteRoutes } from './route.routes.js'
+
+async function routePlugin(fastify: FastifyInstance) {
+  await registerRouteRoutes(fastify)
+}
+
+export default fp(routePlugin, { name: 'route', dependencies: ['auth'] })

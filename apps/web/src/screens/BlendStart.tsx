@@ -40,16 +40,31 @@ export default function BlendStart() {
   const { accessToken } = useAuthStore()
   const socketRef = useSocket(accessToken)
 
+  const drawQr = useCallback((sessionId: string) => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    QRCode.toCanvas(canvas, BLEND_LINK(sessionId), {
+      width: 200,
+      margin: 2,
+      color: { dark: '#0A0A0A', light: '#FFFFFF' },
+    })
+  }, [])
+
   // Create session on mount
   useEffect(() => {
     api.post<BlendSession>('/api/v1/blend').then(s => {
       setSession(s)
-      drawQr(s.id)
     }).catch(e => {
       toast((e as Error).message, 'error')
       navigate(-1)
     })
   }, [])
+
+  // Draw QR after canvas mounts (session?.id change triggers re-render → canvas exists)
+  useEffect(() => {
+    if (!session) return
+    drawQr(session.id)
+  }, [session?.id, drawQr])
 
   // Countdown timer
   useEffect(() => {
@@ -93,11 +108,23 @@ export default function BlendStart() {
       toast('Blend generation failed. Please try again.', 'error')
     }
 
+    const onReady2 = ({ sessionId, participantId }: { sessionId: string; participantId: string }) => {
+      if (sessionId !== session.id) return
+      setSession(prev => prev ? {
+        ...prev,
+        participants: prev.participants.map(p =>
+          p.id === participantId ? { ...p, hasProfile: true } : p,
+        ),
+      } : prev)
+    }
+
     socket.on('blend:participant_joined', onJoined)
+    socket.on('blend:participant_ready',  onReady2)
     socket.on('blend:ready',             onReady)
     socket.on('blend:failed',            onFailed)
     return () => {
       socket.off('blend:participant_joined', onJoined)
+      socket.off('blend:participant_ready',  onReady2)
       socket.off('blend:ready',             onReady)
       socket.off('blend:failed',            onFailed)
     }
@@ -120,16 +147,6 @@ export default function BlendStart() {
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
-
-  const drawQr = useCallback((sessionId: string) => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    QRCode.toCanvas(canvas, BLEND_LINK(sessionId), {
-      width: 200,
-      margin: 2,
-      color: { dark: '#0A0A0A', light: '#FFFFFF' },
-    })
-  }, [])
 
   if (!session) return null
 

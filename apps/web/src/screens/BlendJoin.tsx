@@ -9,7 +9,7 @@ import Button from '../components/ui/Button'
 import PlaylistResult from '../components/PlaylistResult'
 import styles from './BlendJoin.module.css'
 
-type View = 'loading' | 'method' | 'pick-energy' | 'pick-genres' | 'pick-context' | 'describe' | 'waiting' | 'result' | 'error'
+type View = 'loading' | 'auth-choice' | 'method' | 'pick-energy' | 'pick-genres' | 'pick-context' | 'describe' | 'waiting' | 'result' | 'error'
 
 const GENRES = [
   'Electronic', 'Hip Hop', 'Indie', 'Jazz', 'Rock', 'Pop',
@@ -39,22 +39,21 @@ export default function BlendJoin() {
   useEffect(() => {
     if (!sessionId) return
 
-    const join = async () => {
+    const fetchSession = async () => {
       try {
         const session = await api.get<{ participants: Array<{ displayName: string }> }>(`/api/v1/blend/${sessionId}`)
         const host = session.participants[0]
         if (host) setHostName(host.displayName)
 
         if (accessToken) {
+          // Authenticated — join directly
           const result = await api.post<{ participant: { id: string }; needsProfile: boolean }>(`/api/v1/blend/${sessionId}/join`)
           setParticipantId(result.participant.id)
           setIsAnon(false)
           setView(result.needsProfile ? 'method' : 'waiting')
         } else {
-          const result = await api.post<{ participant: { id: string } }>(`/api/v1/blend/${sessionId}/join-anon`)
-          setParticipantId(result.participant.id)
-          setIsAnon(true)
-          setView('method')
+          // Not logged in — let them choose before joining
+          setView('auth-choice')
         }
       } catch (e) {
         toast((e as Error).message, 'error')
@@ -62,8 +61,21 @@ export default function BlendJoin() {
       }
     }
 
-    join()
+    fetchSession()
   }, [sessionId, accessToken])
+
+  const handleGuestJoin = async () => {
+    if (!sessionId) return
+    try {
+      const result = await api.post<{ participant: { id: string } }>(`/api/v1/blend/${sessionId}/join-anon`)
+      setParticipantId(result.participant.id)
+      setIsAnon(true)
+      setView('method')
+    } catch (e) {
+      toast((e as Error).message, 'error')
+      setView('error')
+    }
+  }
 
   // Listen for blend:ready (authenticated users via WebSocket)
   useEffect(() => {
@@ -179,6 +191,21 @@ export default function BlendJoin() {
 
   return (
     <div className={styles.page}>
+      {/* Auth choice — shown to non-logged-in users before joining */}
+      {view === 'auth-choice' && (
+        <div className={styles.authChoice}>
+          <div className={styles.header}>
+            <h1 className={styles.heading}>{hostName} invited you to blend</h1>
+            <p className={styles.subheading}>Join with an account to save the playlist, or continue as a guest.</p>
+          </div>
+          <div className={styles.authButtons}>
+            <Button fullWidth onClick={() => navigate(`/auth?from=/blend/${sessionId}`)}>Log in</Button>
+            <Button variant="secondary" fullWidth onClick={() => navigate(`/auth?from=/blend/${sessionId}`)}>Sign up</Button>
+            <Button variant="ghost" fullWidth onClick={handleGuestJoin}>Continue as guest</Button>
+          </div>
+        </div>
+      )}
+
       {/* Method selection */}
       {view === 'method' && (
         <>

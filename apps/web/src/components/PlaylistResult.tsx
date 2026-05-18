@@ -41,9 +41,10 @@ interface Props {
   isBlend?: boolean
   isHost?: boolean
   blendParticipants?: BlendParticipant[]
+  mapsDeepLink?: string
 }
 
-export default function PlaylistResult({ open, blueprintId, platform, onClose, isBlend, isHost, blendParticipants }: Props) {
+export default function PlaylistResult({ open, blueprintId, platform, onClose, isBlend, isHost, blendParticipants, mapsDeepLink }: Props) {
   const [blueprint, setBlueprint]     = useState<Blueprint | null>(null)
   const [loading, setLoading]         = useState(false)
   const [exporting, setExporting]     = useState(false)
@@ -158,6 +159,17 @@ export default function PlaylistResult({ open, blueprintId, platform, onClose, i
                   Export to {capitalise(platform)}
                 </Button>
               )}
+              {mapsDeepLink && (
+                <a
+                  href={mapsDeepLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={styles.mapsBtn}
+                >
+                  <MapPinIcon />
+                  Open in Google Maps
+                </a>
+              )}
               <Button variant="secondary" fullWidth onClick={onClose}>
                 {exportResult ? 'Done' : 'Dismiss'}
               </Button>
@@ -195,6 +207,15 @@ function capitalise(s: string) { return s.charAt(0).toUpperCase() + s.slice(1).r
 function formatMs(ms: number) {
   const s = Math.round(ms / 1000)
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+}
+
+function MapPinIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
+      <circle cx="12" cy="9" r="2.5" />
+    </svg>
+  )
 }
 
 function SpotifyIcon() {
