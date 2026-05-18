@@ -28,6 +28,11 @@ interface SerialisedSession {
   embeddingFailed: boolean
   popularTrackCount: number
   deepCuts: boolean
+  mlStage: 0 | 1 | 2 | 3
+  affinityMaps?: {
+    artists: Record<string, number>
+    tags: Record<string, number>
+  }
 }
 
 interface SerialisedPool {
