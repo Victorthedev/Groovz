@@ -104,3 +104,48 @@
   border-color: var(--color-accent);
   box-shadow: 0 0 0 3px var(--color-accent-glow);
 }
+
+/* ─── Legal checkbox ─────────────────────────────────────────────────────────── */
+
+.legalCheck {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.legalCheckRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.legalCheckbox {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  cursor: pointer;
+  accent-color: var(--color-accent);
+}
+
+.legalLabel {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.legalLink {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.legalLink:hover { text-decoration: underline; }
+
+.legalError {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-xs);
+  color: var(--color-destructive);
+  padding-left: calc(18px + var(--space-3));
+}

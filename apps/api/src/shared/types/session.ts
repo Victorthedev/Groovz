@@ -37,6 +37,13 @@ export interface PlaylistSession {
   // §16.3 — stored, not used for per-candidate scoring in v1
   promptEmbedding?: number[]
   embeddingFailed: boolean       // triggers §5.7 tag-overlap fallback
+
+  // ML affinity (§8, §18.4) — populated from TasteProfile at session start, 0 = rules-only
+  mlStage: 0 | 1 | 2 | 3
+  affinityMaps?: {
+    artists: Record<string, number>
+    tags: Record<string, number>
+  }
 }
 
 export interface CandidatePool {

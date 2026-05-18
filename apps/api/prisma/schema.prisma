@@ -78,6 +78,7 @@ model User {
   capabilities       UserCapabilities?
   playlists          PlaylistRecord[]
   signals            UserSignal[]
+  tasteProfile       TasteProfile?
   subscription       Subscription?
   cryptoSubscription CryptoSubscription?
 }
@@ -166,6 +167,23 @@ model Subscription {
   currentPeriodEnd DateTime
   region           String
   currency         String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model TasteProfile {
+  userId           String   @id
+  computedAt       DateTime @updatedAt
+  signalCount      Int
+  mlStage          Int
+  energyCentroid   Float
+  tempoCentroid    Float
+  noveltyTolerance Float
+  genreAffinities  Json
+  artistAffinities Json
+  tagAffinities    Json
+  temporalPatterns Json?
+  currentPhase     Json
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

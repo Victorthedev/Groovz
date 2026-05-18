@@ -67,6 +67,11 @@
   border-color: var(--color-accent);
 }
 
+.platformPillSoon {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 /* ─── Messages ────────────────────────────────────────────────────────────── */
 .messages {
   flex: 1;

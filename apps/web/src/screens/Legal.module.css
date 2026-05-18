@@ -1,0 +1,193 @@
+/* Mobile-first — desktop enhancements at the bottom */
+
+.page {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: var(--space-4);
+  padding-top: max(var(--space-4), env(safe-area-inset-top));
+  padding-bottom: calc(var(--space-16) + env(safe-area-inset-bottom));
+  padding-left: max(var(--space-4), env(safe-area-inset-left));
+  padding-right: max(var(--space-4), env(safe-area-inset-right));
+  background: var(--color-bg);
+  min-height: 100dvh;
+}
+
+/* ─── Back link ──────────────────────────────────────────────────────────────── */
+
+.back {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;             /* meets tap target */
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  text-decoration: none;
+  margin-bottom: var(--space-6);
+  transition: color var(--duration-fast);
+}
+
+.back:hover { color: var(--color-text-secondary); }
+
+/* ─── Header ─────────────────────────────────────────────────────────────────── */
+
+.title {
+  font-family: 'Clash Display', sans-serif;
+  font-weight: 700;
+  font-size: var(--text-xl);    /* 24px on mobile */
+  color: var(--color-text-primary);
+  letter-spacing: -0.02em;
+  margin-bottom: var(--space-2);
+  line-height: 1.2;
+}
+
+.meta {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-8);
+}
+
+/* ─── Sections ───────────────────────────────────────────────────────────────── */
+
+.section {
+  margin-bottom: var(--space-6);
+}
+
+.sectionTitle {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-3);
+}
+
+/* ─── Body text ──────────────────────────────────────────────────────────────── */
+
+.body {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.7;
+  margin-bottom: var(--space-3);
+}
+
+/* ─── Lists ──────────────────────────────────────────────────────────────────── */
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-left: var(--space-5);
+  margin-bottom: var(--space-3);
+}
+
+.listItem {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  list-style: disc;
+}
+
+/* ─── Data list (replaces table — wraps naturally on any screen width) ───────── */
+
+.dataList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: var(--space-3) 0;
+}
+
+.dataItem {
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.dataTerm {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-1);
+}
+
+.dataDesc {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+/* ─── Links ──────────────────────────────────────────────────────────────────── */
+
+.link {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.link:hover { text-decoration: underline; }
+
+/* ─── Spotify scope blocks ───────────────────────────────────────────────────── */
+
+.scopeBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: var(--space-3) 0;
+}
+
+.scope {
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.scopeName {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-1);
+  word-break: break-all;        /* scope names like user-read-recently-played are long */
+}
+
+.scopeDesc {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+/* ─── Desktop enhancements ───────────────────────────────────────────────────── */
+
+@media (min-width: 768px) {
+  .page {
+    padding: var(--space-8) var(--space-6);
+    padding-bottom: var(--space-16);
+  }
+
+  .title {
+    font-size: var(--text-2xl);
+    letter-spacing: -0.03em;
+  }
+
+  .sectionTitle {
+    font-size: var(--text-md);
+  }
+
+  .body {
+    font-size: var(--text-base);
+  }
+
+  .listItem {
+    font-size: var(--text-base);
+  }
+
+  .section {
+    margin-bottom: var(--space-8);
+  }
+}

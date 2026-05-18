@@ -5,13 +5,17 @@ import styles from './FeatureIntroModal.module.css'
 // ─── Feature content ─────────────────────────────────────────────────────────
 
 const INTROS: Record<string, { title: string; body: string }> = {
+  make_a_playlist: {
+    title: 'This is where it starts',
+    body: 'Drop a track you love, describe what you\'re after or do both. Groovz traces the graph from there and builds a playlist you won\'t find on any curated list. Same inputs, different playlist every time.',
+  },
   deep_cuts: {
-    title: 'Go further than popular',
-    body: 'Most apps show you what is popular. Deep Cuts follows the similarity graph three hops from your seed. You will hear tracks you have never heard that feel like you have always known them.',
+    title: 'Further in',
+    body: 'This goes three hops out from your seed instead of stopping at the obvious picks. You get artists and tracks that never surface on regular recommendation lists, sitting in the same sonic space as what you started with. First listen usually feels like you\'ve known them for years.',
   },
   session_blend: {
-    title: 'Blend your sound with others',
-    body: 'One taste profile is not always enough. Share a link, others join and Groovz finds the sound that works for all of you. Not a compromise but a real intersection. Up to four people.',
+    title: 'One playlist for the room',
+    body: 'Share the link and everyone joins from their phone. Groovz finds where your taste profiles actually overlap and builds from there. The result isn\'t a compromise. It\'s what you all genuinely have in common.',
   },
   context_cards: {
     title: 'Tell us what you are doing',
@@ -49,7 +53,7 @@ const INTROS: Record<string, { title: string; body: string }> = {
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
-export function useFeatureIntro(featureId: string) {
+export function useFeatureIntro(featureId: string, onDismiss?: () => void) {
   const { seenFeatureIntros, loaded, markSeen } = usePreferencesStore()
   const [show, setShow] = useState(false)
 
@@ -65,6 +69,7 @@ export function useFeatureIntro(featureId: string) {
   const dismiss = () => {
     setShow(false)
     markSeen(featureId)
+    onDismiss?.()
   }
 
   return { show, dismiss }
@@ -74,10 +79,11 @@ export function useFeatureIntro(featureId: string) {
 
 interface Props {
   featureId: string
+  onDismiss?: () => void
 }
 
-export default function FeatureIntroModal({ featureId }: Props) {
-  const { show, dismiss } = useFeatureIntro(featureId)
+export default function FeatureIntroModal({ featureId, onDismiss }: Props) {
+  const { show, dismiss } = useFeatureIntro(featureId, onDismiss)
   const content = INTROS[featureId]
 
   if (!show || !content) return null

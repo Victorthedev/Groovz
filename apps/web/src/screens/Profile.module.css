@@ -151,6 +151,67 @@
 
 .platformActionConnect { color: var(--color-accent); }
 
+.platformComingSoon {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+/* ─── Spotify signal toggle ───────────────────────────────────────────────────── */
+
+.signalToggleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.signalToggleInfo { display: flex; flex-direction: column; gap: var(--space-1); }
+
+.signalToggleLabel {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.signalToggleSub {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.signalToggle {
+  position: relative;
+  width: 44px;
+  height: 26px;
+  border-radius: var(--radius-full);
+  background: var(--color-border);
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--duration-fast) var(--ease-standard);
+}
+
+.signalToggleOn { background: var(--color-accent); }
+
+.signalToggleThumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-full);
+  background: var(--color-text-primary);
+  transition: transform var(--duration-fast) var(--ease-standard);
+}
+
+.signalToggleOn .signalToggleThumb {
+  transform: translateX(18px);
+}
+
 /* ─── Upgrade ─────────────────────────────────────────────────────────────── */
 .upgradeCard {
   display: flex;
@@ -236,5 +297,138 @@
 
 .tasteRowChevron {
   font-size: var(--text-lg);
+  color: var(--color-text-muted);
+}
+
+.contactLink {
+  display: block;
+  text-align: center;
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  text-decoration: none;
+  padding: var(--space-2) 0;
+  transition: color var(--duration-fast) var(--ease-standard);
+}
+
+.contactLink:hover { color: var(--color-text-secondary); }
+
+.deleteBtn {
+  width: 100%;
+  margin-top: var(--space-2);
+  padding: 14px 24px;
+  background: none;
+  border: none;
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: var(--color-destructive);
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: opacity var(--duration-fast);
+}
+
+.deleteBtn:active { opacity: 0.7; }
+
+/* ─── Delete confirmation modal ──────────────────────────────────────────────── */
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 100;
+}
+
+.modal {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-width: var(--screen-max);
+  margin: 0 auto;
+  background: var(--color-surface-raised);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  border-top: 1px solid var(--color-border);
+  padding: var(--space-6);
+  padding-bottom: calc(var(--space-6) + env(safe-area-inset-bottom));
+  z-index: 101;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.modalTitle {
+  font-family: 'Clash Display', sans-serif;
+  font-weight: 700;
+  font-size: var(--text-xl);
+  color: var(--color-text-primary);
+  letter-spacing: -0.02em;
+}
+
+.modalBody {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
+
+.modalActions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.modalDelete {
+  width: 100%;
+  padding: 14px 24px;
+  background: var(--color-destructive);
+  color: var(--color-text-primary);
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-base);
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity var(--duration-fast);
+}
+
+.modalDelete:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.modalCancel {
+  width: 100%;
+  padding: 14px 24px;
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.modalCancel:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ─── Legal links ─────────────────────────────────────────────────────────────── */
+
+.legalLinks {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-4) 0 var(--space-8);
+}
+
+.legalLink {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  text-decoration: none;
+  transition: color var(--duration-fast);
+}
+
+.legalLink:hover { color: var(--color-text-secondary); }
+
+.legalDot {
+  font-size: var(--text-xs);
   color: var(--color-text-muted);
 }

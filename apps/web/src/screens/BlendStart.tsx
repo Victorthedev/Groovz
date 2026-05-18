@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
+import QRCode from 'qrcode'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
 import { useSocket } from '../hooks/useSocket'
@@ -123,18 +124,11 @@ export default function BlendStart() {
   const drawQr = useCallback((sessionId: string) => {
     const canvas = canvasRef.current
     if (!canvas) return
-    const ctx = canvas.getContext('2d')!
-    canvas.width  = 180
-    canvas.height = 180
-    ctx.fillStyle = 'white'
-    ctx.fillRect(0, 0, 180, 180)
-
-    // Simple QR-like visual placeholder — real QR uses the link text
-    ctx.fillStyle = '#0A0A0A'
-    ctx.font = 'bold 10px monospace'
-    ctx.textAlign = 'center'
-    ctx.fillText('Scan to join', 90, 100)
-    ctx.fillText(sessionId.slice(0, 8), 90, 115)
+    QRCode.toCanvas(canvas, BLEND_LINK(sessionId), {
+      width: 200,
+      margin: 2,
+      color: { dark: '#0A0A0A', light: '#FFFFFF' },
+    })
   }, [])
 
   if (!session) return null

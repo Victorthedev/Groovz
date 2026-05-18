@@ -1,12 +1,15 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
 import { useGenerationStore } from '../store/generation'
+import { usePreferencesStore } from '../store/preferences'
 import { useToast } from '../components/ui/Toast'
 import { FrequencyVisualiserCanvas, FrequencyVisualiserBars } from '../components/FrequencyVisualiser'
 import Button from '../components/ui/Button'
-import { Textarea } from '../components/ui/Input'
 import Badge from '../components/ui/Badge'
+import { Textarea } from '../components/ui/Input'
 import PlaylistResult from '../components/PlaylistResult'
+import FeatureIntroModal from '../components/ui/FeatureIntroModal'
 import styles from './Generate.module.css'
 
 type GenType  = 'seed' | 'prompt' | 'hybrid'
@@ -14,15 +17,19 @@ type Platform = 'spotify' | 'deezer' | 'audiomack' | 'youtube_music'
 type Energy   = 'low' | 'medium' | 'high'
 type Tempo    = 'slow' | 'medium' | 'fast'
 
+type TasteSummary =
+  | { available: false; signalCount: number; threshold: number }
+  | { available: true; signalCount: number; phaseLabel: string; genres: string[]; energyCentroid: number; playlistCount: number; memberSince: string }
+
 const CONTEXT_CARDS = [
-  { id: 'pre_match',     label: 'Pre-match warmup',     description: 'Build to peak intensity' },
-  { id: 'cant_sleep',    label: "Can't sleep",           description: 'Wind down slowly'        },
-  { id: 'cooking',       label: 'Cooking for someone',   description: 'Warm and easy'            },
-  { id: 'flight',        label: 'Flight or travel',      description: 'Atmospheric and steady'   },
-  { id: 'running',       label: 'Running',               description: 'Consistent and high energy' },
-  { id: 'getting_ready', label: 'Getting ready',         description: 'Build the energy up'     },
-  { id: 'deep_focus',    label: 'Deep focus',            description: 'Low and uninterrupted'   },
-  { id: 'post_workout',  label: 'Post-workout wind down', description: 'Come back to earth'     },
+  { id: 'pre_match',     label: 'Pre-match warmup',      description: 'Build to peak intensity'     },
+  { id: 'cant_sleep',    label: "Can't sleep",            description: 'Wind down slowly'            },
+  { id: 'cooking',       label: 'Cooking for someone',    description: 'Warm and easy'               },
+  { id: 'flight',        label: 'Flight or travel',       description: 'Atmospheric and steady'      },
+  { id: 'running',       label: 'Running',                description: 'Consistent and high energy'  },
+  { id: 'getting_ready', label: 'Getting ready',          description: 'Build the energy up'        },
+  { id: 'deep_focus',    label: 'Deep focus',             description: 'Low and uninterrupted'      },
+  { id: 'post_workout',  label: 'Post-workout wind down', description: 'Come back to earth'         },
 ]
 
 interface LibraryTrack {
@@ -37,6 +44,17 @@ interface LibraryPlaylist {
   name: string
   trackCount: number
   artworkUrl: string
+}
+
+interface HistoryItem {
+  id: string
+  platform: string
+  seedTrackTitle: string | null
+  seedTrackArtist: string | null
+  promptSummary: string | null
+  durationMinutes: number
+  trackCount: number
+  platformPlaylistUrl: string | null
 }
 
 const PROMPTS = [
@@ -56,51 +74,89 @@ const PLATFORMS: { value: Platform; label: string }[] = [
 const DURATIONS = [30, 60, 90, 120]
 
 export default function Generate() {
-  const [takeover, setTakeover]     = useState(false)
-  const [step, setStep]             = useState<'type' | 'inputs' | 'options'>('type')
-  const [genType, setGenType]       = useState<GenType>('seed')
-  const [platform, setPlatform]     = useState<Platform>('spotify')
-  const [duration, setDuration]     = useState(60)
-  const [prompt, setPrompt]         = useState('')
-  const [energy, setEnergy]           = useState<Energy | ''>('')
-  const [tempo, setTempo]             = useState<Tempo | ''>('')
-  const [contextCard, setContextCard] = useState<string | null>(null)
-  const [contextOpen, setContextOpen] = useState(false)
-  const [deepCuts, setDeepCuts]       = useState(false)
-  const [seedTrack, setSeedTrack]   = useState<LibraryTrack | null>(null)
-  const [library, setLibrary]       = useState<LibraryTrack[]>([])
-  const [playlists, setPlaylists]   = useState<LibraryPlaylist[]>([])
-  const [libraryTab, setLibraryTab] = useState<'tracks' | 'playlists'>('tracks')
+  // ─── Home state ─────────────────────────────────────────────────────────────
+  const [tasteSummary, setTasteSummary]         = useState<TasteSummary | null>(null)
+  const [blendIntroPending, setBlendIntroPending] = useState(false)
+  const [roadTripSheetOpen, setRoadTripSheetOpen] = useState(false)
+  const [history, setHistory]                   = useState<HistoryItem[]>([])
+  const [promptIdx, setPromptIdx]               = useState(0)
+
+  // ─── Takeover state ──────────────────────────────────────────────────────────
+  const [takeover, setTakeover]         = useState(false)
+  const [step, setStep]                 = useState<'type' | 'inputs' | 'options'>('type')
+  const [genType, setGenType]           = useState<GenType>('seed')
+  const [platform, setPlatform]         = useState<Platform>('spotify')
+  const [duration, setDuration]         = useState(60)
+  const [prompt, setPrompt]             = useState('')
+  const [energy, setEnergy]             = useState<Energy | ''>('')
+  const [tempo, setTempo]               = useState<Tempo | ''>('')
+  const [contextCard, setContextCard]   = useState<string | null>(null)
+  const [contextOpen, setContextOpen]   = useState(false)
+  const [deepCuts, setDeepCuts]         = useState(false)
+  const [seedTrack, setSeedTrack]       = useState<LibraryTrack | null>(null)
+  const [library, setLibrary]           = useState<LibraryTrack[]>([])
+  const [playlists, setPlaylists]       = useState<LibraryPlaylist[]>([])
+  const [libraryTab, setLibraryTab]     = useState<'tracks' | 'playlists'>('tracks')
   const [playlistTracks, setPlaylistTracks] = useState<LibraryTrack[]>([])
-  const [loadingLib, setLoadingLib]       = useState(false)
+  const [loadingLib, setLoadingLib]     = useState(false)
   const [generatingNow, setGeneratingNow] = useState(false)
-  const [promptIdx, setPromptIdx]         = useState(0)
-  const [resultOpen, setResultOpen]       = useState(false)
-  const [history, setHistory]             = useState<HistoryItem[]>([])
+  const [resultOpen, setResultOpen]     = useState(false)
 
-  const generation = useGenerationStore()
-  const toast      = useToast()
+  const generation   = useGenerationStore()
+  const toast        = useToast()
+  const navigate     = useNavigate()
+  const { seenFeatureIntros, loaded: prefsLoaded } = usePreferencesStore()
 
-  // Cycle prompt text
+  const isGenerating = generation.status === 'generating'
+  const isComplete   = generation.status === 'complete'
+
+  // ─── Effects ────────────────────────────────────────────────────────────────
+
   useEffect(() => {
     const t = setInterval(() => setPromptIdx(i => (i + 1) % PROMPTS.length), 4000)
     return () => clearInterval(t)
   }, [])
 
-  // Fetch recent history for the strip
+  useEffect(() => {
+    api.get<TasteSummary>('/api/v1/user/taste-summary').then(setTasteSummary).catch(() => {})
+  }, [])
+
   useEffect(() => {
     api.get<{ playlists: HistoryItem[] }>('/api/v1/playlists/history')
       .then(r => setHistory(r.playlists.slice(0, 5)))
       .catch(() => {})
   }, [])
 
-  // Open result when generation completes
   useEffect(() => {
     if (generation.status === 'complete' && takeover) {
       const t = setTimeout(() => setResultOpen(true), 600)
       return () => clearTimeout(t)
     }
   }, [generation.status, takeover])
+
+  // ─── Handlers ────────────────────────────────────────────────────────────────
+
+  const openTakeover = () => {
+    setStep('type')
+    setSeedTrack(null)
+    setPrompt('')
+    setEnergy('')
+    setTempo('')
+    setContextCard(null)
+    setContextOpen(false)
+    setTakeover(true)
+  }
+
+  const handlePlaylistCard = () => { setDeepCuts(false); openTakeover() }
+  const handleDeepCutsCard = () => { setDeepCuts(true);  openTakeover() }
+
+  const handleBlendCard = () => {
+    if (!prefsLoaded || seenFeatureIntros.includes('session_blend')) {
+      navigate('/blend/start')
+    } else {
+      setBlendIntroPending(true)
+    }
+  }
 
   const fetchLibrary = useCallback(async () => {
     setLoadingLib(true)
@@ -131,18 +187,6 @@ export default function Generate() {
     }
   }
 
-  const openTakeover = () => {
-    setStep('type')
-    setSeedTrack(null)
-    setPrompt('')
-    setEnergy('')
-    setTempo('')
-    setContextCard(null)
-    setContextOpen(false)
-    setDeepCuts(false)
-    setTakeover(true)
-  }
-
   const handleGenerate = async () => {
     if (genType !== 'prompt' && !seedTrack) { toast('Pick a seed track first', 'error'); return }
     if (genType !== 'seed' && !prompt.trim()) { toast('Enter a prompt first', 'error'); return }
@@ -167,9 +211,6 @@ export default function Generate() {
     }
   }
 
-  const isGenerating = generation.status === 'generating'
-  const isComplete   = generation.status === 'complete'
-
   return (
     <>
       {/* ─── Home screen ───────────────────────────────────────────────────── */}
@@ -178,7 +219,7 @@ export default function Generate() {
           <span className={styles.wordmark}>Groovz</span>
         </div>
 
-        <div className={styles.hero} onClick={openTakeover}>
+        <div className={styles.hero}>
           <FrequencyVisualiserCanvas
             mode={isGenerating ? 'generating' : 'idle'}
             className={styles.heroVis}
@@ -186,15 +227,70 @@ export default function Generate() {
           <p className={styles.prompt} key={promptIdx}>{PROMPTS[promptIdx]}</p>
         </div>
 
-        <div className={styles.ctaRow}>
-          <button className={styles.ctaCard} onClick={openTakeover}>
-            <FrequencyVisualiserBars mode="idle" count={3} height={16} />
-            <span className={styles.ctaLabel}>Playlist</span>
+        {/* 2x2 mode cards */}
+        <div className={styles.modeGrid}>
+          <button className={styles.modeCard} onClick={handlePlaylistCard}>
+            <FrequencyVisualiserBars mode="idle" count={3} height={12} />
+            <p className={styles.modeCardTitle}>Make a Playlist</p>
+            <p className={styles.modeCardDesc}>Pick a track, describe a vibe or both</p>
           </button>
-          <button className={styles.ctaCard} disabled>
-            <span className={styles.ctaLabel}>Road Trip</span>
-            <Badge variant="premium">Pro</Badge>
+
+          <button className={styles.modeCard} onClick={handleDeepCutsCard}>
+            <FrequencyVisualiserBars mode="idle" count={3} height={12} />
+            <p className={styles.modeCardTitle}>Deep Cuts</p>
+            <p className={styles.modeCardDesc}>Tracks you've never heard but will immediately love</p>
           </button>
+
+          <button className={styles.modeCard} onClick={handleBlendCard}>
+            <FrequencyVisualiserBars mode="idle" count={3} height={12} />
+            <p className={styles.modeCardTitle}>Session Blend</p>
+            <p className={styles.modeCardDesc}>One playlist built for everyone in the room</p>
+          </button>
+
+          <button className={[styles.modeCard, styles.modeCardPro].join(' ')} onClick={() => setRoadTripSheetOpen(true)}>
+            <FrequencyVisualiserBars mode="idle" count={3} height={12} />
+            <div className={styles.modeCardTitleRow}>
+              <p className={styles.modeCardTitle}>Road Trip</p>
+              <Badge variant="premium">Pro</Badge>
+            </div>
+            <p className={styles.modeCardDesc}>A route and a playlist, designed together</p>
+          </button>
+        </div>
+
+        {/* Taste Card section */}
+        <div className={styles.tasteSection}>
+          <div className={styles.tasteDivider}>
+            <span className={styles.tasteLabel}>Your Sound</span>
+          </div>
+
+          {tasteSummary && (
+            tasteSummary.available
+              ? (
+                <button className={styles.tasteCard} onClick={() => navigate('/taste-card')}>
+                  <p className={styles.tastePhaseLabel}>{tasteSummary.phaseLabel}</p>
+                  <div className={styles.tasteGenres}>
+                    {tasteSummary.genres.map(g => (
+                      <span key={g} className={styles.tasteGenrePill}>{g}</span>
+                    ))}
+                  </div>
+                  <p className={styles.tasteCardHint}>Tap to share your taste card</p>
+                </button>
+              ) : (
+                <div className={styles.tasteCard}>
+                  <div className={styles.tasteCardHeader}>
+                    <p className={styles.tasteCardTitle}>Building your taste profile</p>
+                    <p className={styles.tasteCardMeta}>{tasteSummary.signalCount} / {tasteSummary.threshold} signals</p>
+                  </div>
+                  <div className={styles.tasteProgress}>
+                    <div
+                      className={styles.tasteProgressFill}
+                      style={{ width: `${Math.min((tasteSummary.signalCount / tasteSummary.threshold) * 100, 100)}%` }}
+                    />
+                  </div>
+                  <p className={styles.tasteCardHint}>Keep generating and your taste profile will come alive here.</p>
+                </div>
+              )
+          )}
         </div>
 
         {/* Recent strip */}
@@ -219,12 +315,19 @@ export default function Generate() {
             </div>
           </div>
         )}
+
+        {/* Session Blend intro — fires on home before navigating */}
+        {blendIntroPending && (
+          <FeatureIntroModal
+            featureId="session_blend"
+            onDismiss={() => { setBlendIntroPending(false); navigate('/blend/start') }}
+          />
+        )}
       </div>
 
       {/* ─── Full-screen generation takeover ───────────────────────────────── */}
       {takeover && (
         <div className={styles.takeover}>
-          {/* Top bar */}
           <div className={styles.takeoverBar}>
             <button
               className={styles.backBtn}
@@ -233,16 +336,26 @@ export default function Generate() {
             >
               <BackIcon />
             </button>
-            <span className={styles.takeoverTitle}>New Playlist</span>
+            <span className={styles.takeoverTitle}>
+              {deepCuts ? 'Deep Cuts' : 'New Playlist'}
+            </span>
             <span style={{ width: 44 }} />
           </div>
+
+          {deepCuts && (
+            <p className={styles.deepCutsHintLine}>
+              Tracks you've never heard but will immediately love.
+            </p>
+          )}
 
           {/* Generation state */}
           {isGenerating && (
             <div className={styles.generatingState}>
               <FrequencyVisualiserCanvas mode="generating" className={styles.generatingVis} />
               <div className={styles.generatingText}>
-                <p className={styles.generatingStatus}>Building your playlist</p>
+                <p className={styles.generatingStatus}>
+                  {deepCuts ? 'Going deeper…' : 'Building your playlist'}
+                </p>
                 <p className={styles.generatingHint}>Finding the right sounds…</p>
               </div>
             </div>
@@ -277,24 +390,6 @@ export default function Generate() {
                       </button>
                     ))}
                   </div>
-                  {/* Deep Cuts toggle */}
-                  <div className={styles.modeToggle}>
-                    <button
-                      className={[styles.modeBtn, !deepCuts ? styles.modeBtnActive : ''].join(' ')}
-                      onClick={() => setDeepCuts(false)}
-                      type="button"
-                    >Standard</button>
-                    <button
-                      className={[styles.modeBtn, deepCuts ? styles.modeBtnActive : ''].join(' ')}
-                      onClick={() => setDeepCuts(true)}
-                      type="button"
-                    >Deep Cuts</button>
-                  </div>
-                  {deepCuts && (
-                    <p className={styles.deepCutsHint}>
-                      Tracks you have never heard but will immediately connect with.
-                    </p>
-                  )}
 
                   {/* Context cards */}
                   <div className={styles.contextSection}>
@@ -312,33 +407,21 @@ export default function Generate() {
                     </button>
 
                     {contextOpen && (
-                      <div className={styles.contextCards}>
+                      <div className={styles.contextScroll}>
                         {CONTEXT_CARDS.map(card => (
                           <button
                             key={card.id}
                             className={[styles.contextCard, contextCard === card.id ? styles.contextCardActive : ''].join(' ')}
-                            onClick={() => {
-                              setContextCard(contextCard === card.id ? null : card.id)
-                              setContextOpen(false)
-                            }}
+                            onClick={() => { setContextCard(contextCard === card.id ? null : card.id); setContextOpen(false) }}
                             type="button"
                           >
+                            <ContextIcon id={card.id} />
                             <span className={styles.contextCardLabel}>{card.label}</span>
-                            <span className={styles.contextCardDesc}>{card.description}</span>
                           </button>
                         ))}
                       </div>
                     )}
                   </div>
-
-                  <button
-                    className={styles.blendEntry}
-                    onClick={() => { setTakeover(false); window.location.href = '/blend/start' }}
-                    type="button"
-                  >
-                    <span className={styles.blendEntryLabel}>Start a Blend</span>
-                    <span className={styles.blendEntryHint}>Merge sounds with up to 3 others</span>
-                  </button>
 
                   <Button fullWidth onClick={() => { setStep('inputs'); if (genType !== 'prompt') fetchLibrary() }}>
                     Next
@@ -349,12 +432,9 @@ export default function Generate() {
               {/* Step: inputs (seed / prompt) */}
               {step === 'inputs' && (
                 <div className={styles.stepSection}>
-                  {/* Seed track picker */}
                   {(genType === 'seed' || genType === 'hybrid') && (
                     <div className={styles.librarySection}>
                       <p className={styles.stepLabel}>Seed track</p>
-
-                      {/* Tabs: Liked / Playlists */}
                       <div className={styles.libTabs}>
                         <button
                           className={[styles.libTab, libraryTab === 'tracks' ? styles.libTabActive : ''].join(' ')}
@@ -436,7 +516,6 @@ export default function Generate() {
                     </div>
                   )}
 
-                  {/* Prompt input */}
                   {(genType === 'prompt' || genType === 'hybrid') && (
                     <div className={styles.promptSection}>
                       <Textarea
@@ -483,7 +562,7 @@ export default function Generate() {
                 </div>
               )}
 
-              {/* Step: options (platform + duration) */}
+              {/* Step: platform + duration */}
               {step === 'options' && (
                 <div className={styles.stepSection}>
                   <p className={styles.stepLabel}>Export to</p>
@@ -493,9 +572,7 @@ export default function Generate() {
                         key={value}
                         className={[styles.platformBtn, platform === value ? styles.platformBtnActive : ''].join(' ')}
                         onClick={() => setPlatform(value)}
-                      >
-                        {label}
-                      </button>
+                      >{label}</button>
                     ))}
                   </div>
 
@@ -526,7 +603,24 @@ export default function Generate() {
               )}
             </div>
           )}
+
+          {/* Feature intro — fires when takeover opens for the first time per mode */}
+          <FeatureIntroModal featureId={deepCuts ? 'deep_cuts' : 'make_a_playlist'} />
         </div>
+      )}
+
+      {/* ─── Road Trip coming soon sheet ───────────────────────────────────── */}
+      {roadTripSheetOpen && (
+        <>
+          <div className={styles.rtBackdrop} onClick={() => setRoadTripSheetOpen(false)} aria-hidden="true" />
+          <div className={styles.rtSheet} role="dialog" aria-modal="true">
+            <h2 className={styles.rtTitle}>Road Trip</h2>
+            <p className={styles.rtBody}>
+              Plan a route and Groovz builds a playlist that fits it exactly. The music and the road, designed together. Coming to Groovz Pro.
+            </p>
+            <button className={styles.rtCta} onClick={() => setRoadTripSheetOpen(false)}>Got it</button>
+          </div>
+        </>
       )}
 
       {/* ─── Playlist result ───────────────────────────────────────────────── */}
@@ -540,15 +634,19 @@ export default function Generate() {
   )
 }
 
-interface HistoryItem {
-  id: string
-  platform: string
-  seedTrackTitle: string | null
-  seedTrackArtist: string | null
-  promptSummary: string | null
-  durationMinutes: number
-  trackCount: number
-  platformPlaylistUrl: string | null
+function ContextIcon({ id }: { id: string }) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {id === 'pre_match'     && <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />}
+      {id === 'cant_sleep'    && <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />}
+      {id === 'cooking'       && <path d="M12 2S5 9 5 14a7 7 0 0014 0c0-5-7-12-7-12z" />}
+      {id === 'flight'        && <><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></>}
+      {id === 'running'       && <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />}
+      {id === 'getting_ready' && <><circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /></>}
+      {id === 'deep_focus'    && <><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></>}
+      {id === 'post_workout'  && <path d="M2 12c2-4 4-4 6 0s4 4 6 0 4-4 6 0" />}
+    </svg>
+  )
 }
 
 function ChevronDownIcon({ open }: { open: boolean }) {

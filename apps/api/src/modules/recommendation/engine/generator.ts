@@ -184,6 +184,8 @@ export function createSession(params: {
   promptEmbedding?: number[]
   embeddingFailed?: boolean
   deepCuts?: boolean
+  mlStage?: 0 | 1 | 2 | 3
+  affinityMaps?: PlaylistSession['affinityMaps']
 }): PlaylistSession {
   const toleranceMs = 10 * 60 * 1000  // ±10 minutes (§5.1)
   return {
@@ -211,5 +213,7 @@ export function createSession(params: {
     promptEmbedding: params.promptEmbedding,
     embeddingFailed: params.embeddingFailed ?? false,
     deepCuts: params.deepCuts ?? false,
+    mlStage: params.mlStage ?? 0,
+    affinityMaps: params.affinityMaps,
   }
 }

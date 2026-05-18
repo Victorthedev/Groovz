@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { Region } from '@prisma/client'
 import * as authService from './auth.service.js'
-import { signTokens } from './tokens.js'
+import { signAccessToken, signRefreshToken, REFRESH_COOKIE, REFRESH_COOKIE_OPTS } from './tokens.js'
 
 const signupBody = z.object({
   email: z.string().email(),
@@ -15,36 +15,35 @@ const loginBody = z.object({
   password: z.string(),
 })
 
-const refreshBody = z.object({
-  refreshToken: z.string(),
-})
 
 export async function registerAuthRoutes(fastify: FastifyInstance) {
-  fastify.post('/auth/signup', async (request, reply) => {
+  const authLimit = { config: { rateLimit: { max: 10, timeWindow: 60_000 } } }
+
+  fastify.post('/auth/signup', authLimit, async (request, reply) => {
     const body = signupBody.safeParse(request.body)
     if (!body.success) return reply.status(400).send({ error: 'Invalid request' })
 
     const user = await authService.signup(body.data)
-    const tokens = signTokens(user.id, user.email, fastify)
-    return reply.status(201).send(tokens)
+    reply.setCookie(REFRESH_COOKIE, signRefreshToken(user.id, user.email, fastify), REFRESH_COOKIE_OPTS)
+    return reply.status(201).send({ accessToken: signAccessToken(user.id, user.email, fastify) })
   })
 
-  fastify.post('/auth/login', async (request, reply) => {
+  fastify.post('/auth/login', authLimit, async (request, reply) => {
     const body = loginBody.safeParse(request.body)
     if (!body.success) return reply.status(400).send({ error: 'Invalid request' })
 
     const user = await authService.login(body.data.email, body.data.password)
-    const tokens = signTokens(user.id, user.email, fastify)
-    return reply.send(tokens)
+    reply.setCookie(REFRESH_COOKIE, signRefreshToken(user.id, user.email, fastify), REFRESH_COOKIE_OPTS)
+    return reply.send({ accessToken: signAccessToken(user.id, user.email, fastify) })
   })
 
   fastify.post('/auth/refresh', async (request, reply) => {
-    const body = refreshBody.safeParse(request.body)
-    if (!body.success) return reply.status(400).send({ error: 'Invalid request' })
+    const raw = request.cookies?.[REFRESH_COOKIE]
+    if (!raw) return reply.status(401).send({ error: 'No refresh token' })
 
     let payload: { userId: string; email: string; type: string }
     try {
-      payload = fastify.jwt.verify(body.data.refreshToken)
+      payload = fastify.jwt.verify(raw)
     } catch {
       return reply.status(401).send({ error: 'Invalid refresh token' })
     }
@@ -53,8 +52,14 @@ export async function registerAuthRoutes(fastify: FastifyInstance) {
       return reply.status(401).send({ error: 'Invalid token type' })
     }
 
-    const tokens = signTokens(payload.userId, payload.email, fastify)
-    return reply.send(tokens)
+    // Rotate the refresh token on every use
+    reply.setCookie(REFRESH_COOKIE, signRefreshToken(payload.userId, payload.email, fastify), REFRESH_COOKIE_OPTS)
+    return reply.send({ accessToken: signAccessToken(payload.userId, payload.email, fastify) })
+  })
+
+  fastify.post('/auth/logout', async (_request, reply) => {
+    reply.clearCookie(REFRESH_COOKIE, { path: '/' })
+    return reply.status(204).send()
   })
 
   fastify.get(
@@ -63,6 +68,16 @@ export async function registerAuthRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       const user = await authService.getMe(request.user.userId)
       return reply.send(user)
+    },
+  )
+
+  fastify.delete(
+    '/auth/account',
+    { preHandler: [fastify.authenticate] },
+    async (request, reply) => {
+      await authService.deleteAccount(request.user.userId)
+      reply.clearCookie(REFRESH_COOKIE, { path: '/' })
+      return reply.status(204).send()
     },
   )
 }

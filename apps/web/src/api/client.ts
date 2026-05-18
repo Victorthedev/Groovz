@@ -5,33 +5,38 @@ const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3001'
 type Method = 'GET' | 'POST' | 'PATCH' | 'DELETE'
 
 async function request<T>(method: Method, path: string, body?: unknown): Promise<T> {
-  const { accessToken, refreshToken, setTokens, clear } = useAuthStore.getState()
+  const { accessToken, setToken, clear } = useAuthStore.getState()
 
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`
+  const headers: Record<string, string> = {}
+  if (accessToken)        headers['Authorization']  = `Bearer ${accessToken}`
+  if (body !== undefined) headers['Content-Type']   = 'application/json'
 
   const res = await fetch(`${BASE}${path}`, {
     method,
     headers,
+    credentials: 'include',  // sends the HTTP-only refresh cookie automatically
     body: body !== undefined ? JSON.stringify(body) : undefined,
   })
 
-  // Access token expired — try a silent refresh
-  if (res.status === 401 && refreshToken) {
+  // Access token expired — silent refresh using the HTTP-only cookie
+  if (res.status === 401) {
     const refreshRes = await fetch(`${BASE}/api/v1/auth/refresh`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken }),
+      credentials: 'include',  // cookie is sent automatically, no body needed
     })
 
     if (refreshRes.ok) {
-      const tokens = await refreshRes.json() as { accessToken: string; refreshToken: string }
-      setTokens(tokens.accessToken, tokens.refreshToken)
+      const { accessToken: newToken } = await refreshRes.json() as { accessToken: string }
+      setToken(newToken)
 
-      // Retry original request with the fresh token
+      // Retry original request with fresh token
+      const retryHeaders: Record<string, string> = { Authorization: `Bearer ${newToken}` }
+      if (body !== undefined) retryHeaders['Content-Type'] = 'application/json'
+
       const retry = await fetch(`${BASE}${path}`, {
         method,
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tokens.accessToken}` },
+        headers: retryHeaders,
+        credentials: 'include',
         body: body !== undefined ? JSON.stringify(body) : undefined,
       })
 
@@ -43,7 +48,7 @@ async function request<T>(method: Method, path: string, body?: unknown): Promise
       return retry.json() as Promise<T>
     }
 
-    // Refresh token also invalid — session fully expired
+    // Cookie invalid or expired — full logout
     clear()
     window.location.replace('/auth')
     throw new Error('Session expired')
@@ -60,8 +65,8 @@ async function request<T>(method: Method, path: string, body?: unknown): Promise
 }
 
 export const api = {
-  get:    <T>(path: string)                    => request<T>('GET',    path),
-  post:   <T>(path: string, body?: unknown)    => request<T>('POST',   path, body),
-  patch:  <T>(path: string, body?: unknown)    => request<T>('PATCH',  path, body),
-  delete: <T>(path: string)                    => request<T>('DELETE', path),
+  get:    <T>(path: string)                 => request<T>('GET',    path),
+  post:   <T>(path: string, body?: unknown) => request<T>('POST',   path, body),
+  patch:  <T>(path: string, body?: unknown) => request<T>('PATCH',  path, body),
+  delete: <T>(path: string)                 => request<T>('DELETE', path),
 }

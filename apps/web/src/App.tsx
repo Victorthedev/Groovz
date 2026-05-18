@@ -21,6 +21,8 @@ import Library        from './screens/Library'
 import Discover       from './screens/Discover'
 import Profile        from './screens/Profile'
 import Chat           from './screens/Chat'
+import PrivacyPolicy  from './screens/PrivacyPolicy'
+import Terms          from './screens/Terms'
 
 export default function App() {
   const { isLoading, accessToken } = useAuthStore()
@@ -68,6 +70,9 @@ export default function App() {
             <Route path="profile"  element={<Profile />}  />
             <Route path="chat"     element={<Chat />}     />
           </Route>
+
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms"   element={<Terms />} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

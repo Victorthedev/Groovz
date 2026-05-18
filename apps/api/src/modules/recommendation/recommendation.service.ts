@@ -9,6 +9,7 @@ import { resolveDisplayId } from '../auth/platform.service.js'
 import { lastfm } from './clients/lastfm.js'
 import { playlistGenerationQueue } from '../../jobs/playlist-generation.job.js'
 import { CONTEXT_CARD_MAP, energyRangeToIntent, tempoRangeToIntent } from '../../shared/data/context-cards.js'
+import { mlStage } from '../ml/index.js'
 import type { PlaylistBlueprint, Intent } from '../../shared/types/index.js'
 
 const SESSION_TTL = 60 * 10   // 10 minutes (§4 Redis TTL)
@@ -34,6 +35,8 @@ export interface GenerateInput {
 export async function startGeneration(input: GenerateInput): Promise<{ jobId: string; blueprintId: string }> {
   // Capability check — never trust frontend-provided limits (§15)
   let caps = await prisma.userCapabilities.findUnique({ where: { userId: input.userId } })
+  // Fetch TasteProfile for ML affinity (§8) — non-blocking, absent = rules-only mode
+  const tasteProfile = await prisma.tasteProfile.findUnique({ where: { userId: input.userId } }).catch(() => null)
   if (!caps) throw Object.assign(new Error('Capabilities not found'), { statusCode: 500 })
 
   // Reset monthly counter if the billing period has rolled over
@@ -179,6 +182,15 @@ export async function startGeneration(input: GenerateInput): Promise<{ jobId: st
     ? await expandFromSeedDeepCuts(seedTitle!, seedArtist!, targetDurationMs)
     : await expandFromSeed(seedTitle!, seedArtist!, targetDurationMs)
 
+  // Resolve ML stage + affinity maps from TasteProfile
+  const stage = tasteProfile ? mlStage(tasteProfile.signalCount) : 0
+  const affinityMaps = stage >= 1 && tasteProfile
+    ? {
+        artists: tasteProfile.artistAffinities as Record<string, number>,
+        tags:    tasteProfile.tagAffinities    as Record<string, number>,
+      }
+    : undefined
+
   // Create session
   const session = createSession({
     userId: input.userId,
@@ -191,6 +203,8 @@ export async function startGeneration(input: GenerateInput): Promise<{ jobId: st
     promptEmbedding,
     embeddingFailed,
     deepCuts: input.deepCuts ?? false,
+    mlStage: stage,
+    affinityMaps,
   })
 
   // Persist session + pool to Redis
@@ -264,7 +278,91 @@ export async function getHistory(userId: string) {
   })
 }
 
+// ─── Weekly ML generation (§18.6) ────────────────────────────────────────────
+
+export async function startWeeklyGeneration(userId: string): Promise<void> {
+  const [prefs, caps, tasteProfile] = await Promise.all([
+    prisma.userPreferences.findUnique({ where: { userId } }),
+    prisma.userCapabilities.findUnique({ where: { userId } }),
+    prisma.tasteProfile.findUnique({ where: { userId } }),
+  ])
+
+  // Weekly playlist is a paid feature (§9)
+  if (caps?.plan !== 'paid') return
+
+  if (!tasteProfile) return
+  const stage = mlStage(tasteProfile.signalCount)
+  if (stage < 1) return
+
+  const platform = prefs?.defaultPlatform ?? 'spotify'
+  // 2.5 hours, capped at the user's plan limit
+  const targetMinutes = Math.min(150, caps.maxPlaylistDurationMinutes)
+  const targetDurationMs = targetMinutes * 60_000
+
+  const topTags   = Object.keys(tasteProfile.tagAffinities    as Record<string, number>).slice(0, 5)
+  const topGenres = Object.keys(tasteProfile.genreAffinities  as Record<string, number>).slice(0, 3)
+
+  const intent: Intent = {
+    tags:   [...topGenres, ...topTags],
+    energy: energyBand(tasteProfile.energyCentroid),
+    tempo:  tempoBand(tasteProfile.tempoCentroid),
+  }
+
+  const pool = await expandFromPrompt(intent, targetDurationMs)
+
+  const affinityMaps = {
+    artists: tasteProfile.artistAffinities as Record<string, number>,
+    tags:    tasteProfile.tagAffinities    as Record<string, number>,
+  }
+
+  const session = createSession({
+    userId,
+    generationType: 'weekly_ml',
+    targetPlatform: platform,
+    targetDurationMs,
+    intent,
+    embeddingFailed: false,
+    mlStage: stage,
+    affinityMaps,
+  })
+
+  await Promise.all([
+    redis.setex(`session:${session.sessionId}`, SESSION_TTL, serialiseSession(session)),
+    redis.setex(`pool:${session.sessionId}`, POOL_TTL, serialisePool(pool)),
+  ])
+
+  const blueprintId = randomUUID()
+  await prisma.playlistRecord.create({
+    data: {
+      id: blueprintId,
+      userId,
+      platform,
+      generationType: 'weekly_ml',
+      durationMinutes: 60,
+      trackCount: 0,
+    },
+  })
+
+  await playlistGenerationQueue.add('generate', {
+    sessionId:        session.sessionId,
+    userId,
+    playlistRecordId: blueprintId,
+  })
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function energyBand(centroid: number): 'low' | 'medium' | 'high' {
+  if (centroid >= 0.65) return 'high'
+  if (centroid >= 0.35) return 'medium'
+  return 'low'
+}
+
+function tempoBand(centroid: number): 'slow' | 'medium' | 'fast' {
+  if (centroid >= 0.65) return 'fast'
+  if (centroid >= 0.35) return 'medium'
+  return 'slow'
+}
 
 function buildIntentFromInput(raw?: GenerateInput['intent']): Intent | undefined {
   if (!raw) return undefined

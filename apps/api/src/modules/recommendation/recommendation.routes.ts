@@ -27,9 +27,10 @@ const generateBody = z.object({
 })
 
 export async function registerRecommendationRoutes(fastify: FastifyInstance) {
-  const auth = { preHandler: [fastify.authenticate] }
+  const auth       = { preHandler: [fastify.authenticate] }
+  const genLimit   = { preHandler: [fastify.authenticate], config: { rateLimit: { max: 20, timeWindow: 60_000 } } }
 
-  fastify.post('/playlists/generate', auth, async (request, reply) => {
+  fastify.post('/playlists/generate', genLimit, async (request, reply) => {
     const body = generateBody.safeParse(request.body)
     if (!body.success) return reply.status(400).send({ error: 'Invalid request', details: body.error.flatten() })
 

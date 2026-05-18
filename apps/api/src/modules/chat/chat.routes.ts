@@ -11,7 +11,7 @@ const chatBody = z.object({
 export async function registerChatRoutes(fastify: FastifyInstance) {
   fastify.post(
     '/chat',
-    { preHandler: [fastify.authenticate] },
+    { preHandler: [fastify.authenticate], config: { rateLimit: { max: 30, timeWindow: 60_000 } } },
     async (request, reply) => {
       const body = chatBody.safeParse(request.body)
       if (!body.success) return reply.status(400).send({ error: 'Invalid request' })
