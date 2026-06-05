@@ -804,7 +804,3 @@ Config in `apps/web/vercel.json`. All routes rewrite to `/index.html` (SPA). Con
 **Prisma nullable JSON uses `Prisma.DbNull`.** Prisma rejects plain `null` for nullable `Json` fields. Always use `Prisma.DbNull` for null values in upserts.
 
 **No feature gates removed from code.** Premium gates are commented out, not deleted. The comment explains what was gated and why it was removed.
-
-**No em dashes anywhere in user-facing copy.** Use a comma or rewrite the sentence.
-
-**No Oxford commas in user-facing copy.**
