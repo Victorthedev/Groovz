@@ -5,6 +5,7 @@ import { prisma } from '../../shared/utils/prisma.js'
 
 const generateBody = z.object({
   type: z.enum(['seed', 'prompt', 'hybrid']),
+  source: z.literal('road_trip').optional(),
   platform: z.enum(['spotify', 'deezer', 'audiomack', 'youtube_music']),
   seedDisplayId: z.string().optional(),
   prompt: z.string().max(500).optional(),
@@ -35,12 +36,15 @@ export async function registerRecommendationRoutes(fastify: FastifyInstance) {
     if (!body.success) return reply.status(400).send({ error: 'Invalid request', details: body.error.flatten() })
 
     const { durationMinutes } = body.data.intent ?? {}
-    if (durationMinutes && durationMinutes > 120) {
+    // Road Trip's duration comes from Google's route estimate, not a direct user
+    // choice — give it breathing room above the §5.1 cap instead of rejecting it.
+    const maxDurationMinutes = body.data.source === 'road_trip' ? 150 : 120
+    if (durationMinutes && durationMinutes > maxDurationMinutes) {
       // §5.1 hard duration rule — ask rather than silently cap
       return reply.status(400).send({
         error: 'Duration too long',
-        message: 'Maximum is 120 minutes for a single playlist. Would you like a 2-hour playlist instead?',
-        suggestedDurationMinutes: 120,
+        message: `Maximum is ${maxDurationMinutes} minutes for a single playlist. Would you like a shorter playlist instead?`,
+        suggestedDurationMinutes: maxDurationMinutes,
       })
     }
 
