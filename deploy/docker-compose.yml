@@ -1,8 +1,6 @@
 services:
   api:
-    build:
-      context: ..
-      dockerfile: apps/api/Dockerfile
+    image: ghcr.io/victorthedev/groovz-api:latest
     restart: unless-stopped
     env_file:
       - .env
