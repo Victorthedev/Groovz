@@ -18,8 +18,10 @@ async function request<T>(method: Method, path: string, body?: unknown): Promise
     body: body !== undefined ? JSON.stringify(body) : undefined,
   })
 
-  // Access token expired — silent refresh using the HTTP-only cookie
-  if (res.status === 401) {
+  // Access token expired — silent refresh using the HTTP-only cookie.
+  // Login/signup are excluded: a 401 there means invalid credentials, not an expired session.
+  const isAuthEntryPoint = path === '/api/v1/auth/login' || path === '/api/v1/auth/signup'
+  if (res.status === 401 && !isAuthEntryPoint) {
     const refreshRes = await fetch(`${BASE}/api/v1/auth/refresh`, {
       method: 'POST',
       credentials: 'include',  // cookie is sent automatically, no body needed

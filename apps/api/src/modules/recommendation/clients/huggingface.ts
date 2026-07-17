@@ -110,6 +110,8 @@ async function zeroShotClassify(
     .sort((a, b) => b.score - a.score)
 }
 
+const HF_TIMEOUT_MS = 8000
+
 async function hfFetch(model: string, body: unknown): Promise<Response> {
   const key = process.env.HUGGINGFACE_API_KEY
   if (!key) throw new Error('HUGGINGFACE_API_KEY not configured')
@@ -121,6 +123,7 @@ async function hfFetch(model: string, body: unknown): Promise<Response> {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(HF_TIMEOUT_MS),
   })
 
   if (!res.ok) throw new Error(`HuggingFace ${res.status} for ${model}`)
