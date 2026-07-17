@@ -158,6 +158,40 @@ export async function classifyMusicDomain(message: string): Promise<boolean> {
   }
 }
 
+// ─── Prompt → seed artist fallback ────────────────────────────────────────────
+// Used when local tag matching finds nothing (e.g. "Zimbabwean contemporary
+// music" — a real description, but not a TAG_MAPPINGS keyword). Groq knows real
+// artists for arbitrary genre/region/mood descriptions; TAG_MAPPINGS never will.
+
+export async function suggestSeedArtist(prompt: string): Promise<string | null> {
+  const key = process.env.GROQ_API_KEY
+  if (!key) return null
+
+  try {
+    const res = await fetch(GROQ_API_URL, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: GROQ_MODEL,
+        messages: [{
+          role: 'user',
+          content: `Suggest exactly one real, well-known music artist that best fits this description: "${prompt}". Reply with only the artist's name, nothing else.`,
+        }],
+        max_tokens: 20,
+        temperature: 0.5,
+      }),
+      signal: AbortSignal.timeout(8000),
+    })
+    if (!res.ok) return null
+
+    const data = await res.json() as { choices: Array<{ message: { content: string } }> }
+    const name = data.choices[0]?.message.content?.trim()
+    return name || null
+  } catch {
+    return null
+  }
+}
+
 // ─── Conversational chat (§7) ─────────────────────────────────────────────────
 
 export interface ChatMessage {

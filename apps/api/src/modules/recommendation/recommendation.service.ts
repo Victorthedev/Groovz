@@ -4,7 +4,7 @@ import { redis } from '../../shared/utils/redis.js'
 import { serialiseSession, serialisePool } from '../../shared/utils/redis-serialise.js'
 import { createSession } from './engine/generator.js'
 import { expandFromSeed, expandFromPrompt, expandFromSeedDeepCuts } from './engine/expander.js'
-import { extractIntent, embedText } from './clients/huggingface.js'
+import { extractIntent, embedText, suggestSeedArtist } from './clients/huggingface.js'
 import { resolveDisplayId } from '../auth/platform.service.js'
 import { lastfm } from './clients/lastfm.js'
 import { playlistGenerationQueue } from '../../jobs/playlist-generation.job.js'
@@ -184,11 +184,24 @@ export async function startGeneration(input: GenerateInput): Promise<{ jobId: st
   }
 
   // Expand candidate pool — Deep Cuts uses 3-hop similarity for seed/hybrid
-  const pool = input.type === 'prompt'
+  let pool = input.type === 'prompt'
     ? await expandFromPrompt(intent ?? {}, targetDurationMs)
     : input.deepCuts
     ? await expandFromSeedDeepCuts(seedTitle!, seedArtist!, targetDurationMs)
     : await expandFromSeed(seedTitle!, seedArtist!, targetDurationMs)
+
+  // Fallback: local tag matching found nothing (e.g. a free-text genre/region
+  // prompt with no TAG_MAPPINGS keyword). Ask Groq for a real seed artist and
+  // expand from that instead of returning an empty playlist.
+  if (input.type === 'prompt' && pool.tracks.size === 0 && input.prompt) {
+    const suggestedArtist = await suggestSeedArtist(input.prompt)
+    if (suggestedArtist) {
+      const [topTrack] = await lastfm.getArtistTopTracks(suggestedArtist, 1)
+      if (topTrack) {
+        pool = await expandFromSeed(topTrack.name, suggestedArtist, targetDurationMs)
+      }
+    }
+  }
 
   // Resolve ML stage + affinity maps from TasteProfile
   const stage = tasteProfile ? mlStage(tasteProfile.signalCount) : 0
