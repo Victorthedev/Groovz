@@ -18,6 +18,7 @@ const POOL_TTL    = 60 * 10
 export interface GenerateInput {
   userId: string
   type: 'seed' | 'prompt' | 'hybrid'
+  source?: 'road_trip'
   platform: string
   seedDisplayId?: string
   prompt?: string
@@ -80,13 +81,17 @@ export async function startGeneration(input: GenerateInput): Promise<{ jobId: st
 
   // Resolve duration
   const requestedMinutes = input.intent?.durationMinutes
-  const maxMinutes = caps.maxPlaylistDurationMinutes
+  // Road Trip's duration comes from a route estimate, not a direct user choice —
+  // give it the same breathing room above the tier cap as the route layer allows.
+  const maxMinutes = input.source === 'road_trip'
+    ? Math.max(caps.maxPlaylistDurationMinutes, 150)
+    : caps.maxPlaylistDurationMinutes
   const targetMinutes = requestedMinutes
     ? Math.min(requestedMinutes, maxMinutes)
     : 60
   const targetDurationMs = targetMinutes * 60_000
 
-  // If requesting >120 min on free tier, the route layer should have caught this.
+  // If requesting beyond the resolved cap, the route layer should have caught it.
   // Belt-and-suspenders: clamp silently here.
 
   // Resolve seed track if provided
@@ -145,6 +150,9 @@ export async function startGeneration(input: GenerateInput): Promise<{ jobId: st
       if (input.intent?.energy) intent.energy = input.intent.energy
       if (input.intent?.tempo)  intent.tempo  = input.intent.tempo
       if (input.intent?.mood)   intent.mood   = input.intent.mood
+      // Explicit tags fill in when prompt-text matching finds none (e.g. generic
+      // activity prompts like "Relaxed music for a walk" match no TAG_MAPPINGS key)
+      if (input.intent?.tags?.length && !intent.tags?.length) intent.tags = input.intent.tags
     } catch {
       // §5.7 embedding service failure — run with whatever we have
       embeddingFailed = true

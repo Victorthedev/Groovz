@@ -61,6 +61,16 @@ const ACTIVITY_PROMPT: Record<Activity, string> = {
   walk:  'Relaxed music for a walk',
 }
 
+// Explicit tag-mapping matches — the prompts above don't reliably contain
+// keywords the backend's tag extraction matches, which left the candidate
+// pool empty. These guarantee a non-empty pool regardless of prompt wording.
+const ACTIVITY_TAGS: Record<Activity, string[]> = {
+  drive: ['driving', 'road trip'],
+  cycle: ['energetic', 'upbeat', 'workout'],
+  jog:   ['running', 'workout', 'energetic'],
+  walk:  ['relaxing', 'calm', 'acoustic'],
+}
+
 export default function RoadTrip() {
   const [step, setStep]               = useState<Step>('inputs')
   const [startQuery, setStartQuery]   = useState('')
@@ -196,6 +206,7 @@ export default function RoadTrip() {
           durationMinutes: routeResult.estimatedDurationMinutes,
           energy: ACTIVITY_ENERGY[activity],
           tempo:  ACTIVITY_TEMPO[activity],
+          tags:   ACTIVITY_TAGS[activity],
         },
       })
       generation.start(res.jobId, res.blueprintId, 'spotify')
