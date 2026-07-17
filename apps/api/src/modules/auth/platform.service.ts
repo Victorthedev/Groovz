@@ -233,7 +233,7 @@ async function getSpotifyLibrary(userId: string): Promise<LibraryData> {
       displayId,
       title: track.name,
       artist: track.artists[0]?.name ?? '',
-      artworkUrl: track.album.images[0]?.url ?? '',
+      artworkUrl: track.album.images?.[0]?.url ?? '',
       source: 'spotify',
     })
   }
@@ -251,7 +251,7 @@ async function getSpotifyLibrary(userId: string): Promise<LibraryData> {
       displayPlaylistId,
       name: pl.name,
       trackCount: pl.tracks.total,
-      artworkUrl: pl.images[0]?.url ?? '',
+      artworkUrl: pl.images?.[0]?.url ?? '',
       source: 'spotify',
     })
   }
@@ -300,7 +300,7 @@ async function getSpotifyPlaylistTracks(userId: string, displayPlaylistId: strin
       displayId,
       title: track.name,
       artist: track.artists[0]?.name ?? '',
-      artworkUrl: track.album.images[0]?.url ?? '',
+      artworkUrl: track.album.images?.[0]?.url ?? '',
       source: 'spotify',
     })
   }

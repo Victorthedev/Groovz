@@ -189,6 +189,7 @@ export default function RoadTrip() {
     try {
       const res = await api.post<{ jobId: string; blueprintId: string }>('/api/v1/playlists/generate', {
         type: 'prompt',
+        source: 'road_trip',
         platform: 'spotify',
         prompt: ACTIVITY_PROMPT[activity],
         intent: {
