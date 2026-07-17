@@ -1,0 +1,9 @@
+**/node_modules
+**/dist
+**/.env
+**/.env.*
+!.env.example
+.git
+.turbo
+apps/web/node_modules
+apps/api/node_modules
