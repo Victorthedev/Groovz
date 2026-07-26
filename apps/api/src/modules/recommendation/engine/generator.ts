@@ -102,6 +102,7 @@ export async function generate(
     intent: session.intent,
     backupTracks,
     deepCuts: session.deepCuts || undefined,
+    suggestedName: session.suggestedName,
   }
 }
 
@@ -186,6 +187,7 @@ export function createSession(params: {
   deepCuts?: boolean
   mlStage?: 0 | 1 | 2 | 3
   affinityMaps?: PlaylistSession['affinityMaps']
+  suggestedName?: string
 }): PlaylistSession {
   const toleranceMs = 10 * 60 * 1000  // ±10 minutes (§5.1)
   return {
@@ -215,5 +217,6 @@ export function createSession(params: {
     deepCuts: params.deepCuts ?? false,
     mlStage: params.mlStage ?? 0,
     affinityMaps: params.affinityMaps,
+    suggestedName: params.suggestedName,
   }
 }

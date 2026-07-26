@@ -19,6 +19,7 @@ export interface GenerateInput {
   userId: string
   type: 'seed' | 'prompt' | 'hybrid'
   source?: 'road_trip'
+  label?: string
   platform: string
   seedDisplayId?: string
   prompt?: string
@@ -226,6 +227,7 @@ export async function startGeneration(input: GenerateInput): Promise<{ jobId: st
     deepCuts: input.deepCuts ?? false,
     mlStage: stage,
     affinityMaps,
+    suggestedName: buildPlaylistName(input, seedTitle, seedArtist),
   })
 
   // Persist session + pool to Redis
@@ -371,6 +373,34 @@ export async function startWeeklyGeneration(userId: string): Promise<void> {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const PLAYLIST_NAME_SUFFIX = ' - Groovz'
+const SPOTIFY_NAME_MAX = 100
+
+// Human-readable name for the exported platform playlist — otherwise every
+// export was hardcoded to "Groovz Mix", making playlists impossible to tell
+// apart or re-find later in Spotify search.
+function buildPlaylistName(input: GenerateInput, seedTitle?: string, seedArtist?: string): string {
+  let base: string
+  if (input.source === 'road_trip' && input.label) {
+    base = input.label
+  } else if (seedTitle && seedArtist) {
+    base = `${seedTitle} Mix`
+  } else if (input.prompt) {
+    base = input.prompt
+  } else {
+    base = 'Mix'
+  }
+
+  if (input.deepCuts) base = `Deep Cuts: ${base}`
+
+  const maxBaseLen = SPOTIFY_NAME_MAX - PLAYLIST_NAME_SUFFIX.length
+  if (base.length > maxBaseLen) {
+    base = `${base.slice(0, maxBaseLen - 1).trimEnd()}…`
+  }
+
+  return `${base}${PLAYLIST_NAME_SUFFIX}`
+}
 
 function energyBand(centroid: number): 'low' | 'medium' | 'high' {
   if (centroid >= 0.65) return 'high'

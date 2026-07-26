@@ -194,12 +194,14 @@ export default function RoadTrip() {
   // ─── Playlist generation ───────────────────────────────────────────────────
 
   const handleGenerate = async () => {
-    if (!routeResult) return
+    if (!routeResult || !startPlace) return
     setStep('generating')
     try {
+      const label = isLoop ? startPlace.name : `${startPlace.name} to ${destPlace?.name}`
       const res = await api.post<{ jobId: string; blueprintId: string }>('/api/v1/playlists/generate', {
         type: 'prompt',
         source: 'road_trip',
+        label,
         platform: 'spotify',
         prompt: ACTIVITY_PROMPT[activity],
         intent: {

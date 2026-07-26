@@ -6,6 +6,7 @@ import { prisma } from '../../shared/utils/prisma.js'
 const generateBody = z.object({
   type: z.enum(['seed', 'prompt', 'hybrid']),
   source: z.literal('road_trip').optional(),
+  label: z.string().max(200).optional(),
   platform: z.enum(['spotify', 'deezer', 'audiomack', 'youtube_music']),
   seedDisplayId: z.string().optional(),
   prompt: z.string().max(500).optional(),

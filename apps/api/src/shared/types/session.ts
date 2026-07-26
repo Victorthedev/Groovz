@@ -34,6 +34,9 @@ export interface PlaylistSession {
   seedTrackTitle?: string
   seedTrackArtist?: string
 
+  // Human-readable name for the exported platform playlist
+  suggestedName?: string
+
   // §16.3 — stored, not used for per-candidate scoring in v1
   promptEmbedding?: number[]
   embeddingFailed: boolean       // triggers §5.7 tag-overlap fallback

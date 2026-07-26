@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm --filter @groovz/api exec tsc --noEmit)",
+      "Bash(pnpm --filter @groovz/web exec tsc --noEmit)",
+      "Bash(grep -rn \"blueprint:\\\\${\" apps/api/src)",
+      "Bash(docker build *)",
+      "Bash(docker push *)"
+    ]
+  }
+}

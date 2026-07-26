@@ -31,6 +31,7 @@ export interface PlaylistBlueprint {
   backupTracks?: CanonicalTrack[]  // pre-scored candidates for resolution fallback (§5.9)
   seedWasRemix?: boolean           // controls reject-keyword filter in resolver
   deepCuts?: boolean
+  suggestedName?: string           // used as the exported platform playlist title
 }
 
 export interface ResolvedTrack {
